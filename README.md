@@ -7,16 +7,16 @@ Acesse o link ![google.com](https://google.com) para instalar e criar seu arquiv
 ## Glossário
 
 - True: истинный
-- False: ЛОЖЬ
+- False: ложь
 - Integer: целое число
 - String: строка
 - Decimal: десятичная дробь
 - Boolean: логический
-- Do: ДЕЛАТЬ
-- While: ПОКА
-- For: ДЛЯ
-- Function: ФУНКЦИЯ
-- Return: ВЕРНУТЬ
+- Do: делать
+- While: пока
+- For: для
+- Function: функция
+- Return: вернуть
 - If: если
 - Else: иначе
 
@@ -26,7 +26,7 @@ Acesse o link ![google.com](https://google.com) para instalar e criar seu arquiv
 - DEC -> ```[0-9]+.[0-9]+```
 - ID  -> ```[a-zA-Z\u0400-\u04FF]+```
 - STRING -> ``` '[a-zA-Z\u0400-\u04FF_*/@=^<>!...]+' ```
-- BOOLEAN -> ``` 'истинный | ЛОЖЬ' ```
+- BOOLEAN -> ``` 'истинный | ложь' ```
 - TYPE -> ``` 'целое число' | 'десятичная дробь' | 'строка' | 'логический' ```
 - PLUS -> ``` '+' ```
 - MINUS -> ``` '-' ```
@@ -53,9 +53,9 @@ Acesse o link ![google.com](https://google.com) para instalar e criar seu arquiv
 - CLOSE_PARENTHESIS -> ``` '}' ```
 - OP_IF -> ``` 'если' ```
 - OP_ELSE -> ``` 'иначе' ```
-- OP_DO -> ``` 'ДЕЛАТЬ' ```
-- OP_WHILE -> ``` 'ПОКА' ```
-- OP_FOR -> ``` 'ДЛЯ' ```
-- OP_FUNCTION -> ``` 'ФУНКЦИЯ' ``` 
-- OP_RETURN -> ``` 'ВЕРНУТЬ' ```
+- OP_DO -> ``` 'делать' ```
+- OP_WHILE -> ``` 'пока' ```
+- OP_FOR -> ``` 'для' ```
+- OP_FUNCTION -> ``` 'функция' ``` 
+- OP_RETURN -> ``` 'вернуть' ```
 - EOF -> ``` '$' ```
