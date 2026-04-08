@@ -29,7 +29,7 @@ Acesse o link ![google.com](https://google.com) para instalar e criar seu arquiv
 
 - INT -> ```[0-9]+```
 - DEC -> ```[0-9]+.[0-9]+```
-- ID  -> ```[a-zA-Z\u0400-\u04FF]+```
+- ID  -> ```[a-zA-Z\u0400-\u04FF0-9]+```
 - STRING -> ``` '"[a-zA-Z\u0400-\u04FF_*/@=^<>!...]+"' ```
 - BOOLEAN -> ``` 'истинный | ложь' ```
 - TYPE -> ``` 'интеграл' | 'десятичный' | 'строка' | 'логический' ```
@@ -76,13 +76,72 @@ Acesse o link ![google.com](https://google.com) para instalar e criar seu arquiv
 
 
 ## Gramática 
+
+### OBS: termos em caps lock são terminais
 ```
-- programa: bloco
-- bloco: cmd bloco |  ε
-- cmd: cmdId | cmdIf
-- cmdId: ID acesso complemento
-- cmdIf: <OP_IF> expressao '{' bloco '}'
-- cmdElse: <OP_ELSE> '{' bloco '}'
-- atribNormal: <ASSIGN> valor
+
+file: bloco EOF
+
+bloco: comando* 
+
+comando: atribuicao | condicional | laco_while | laco_for | funcao_def | retorno | comando_print | comando_input | comando_continue | comando_break
+
+atribuicao: ID acessoOp operador_atrib expressao
+
+operador_atrib: ASSIGN | PLUS_ASSIGN | MINUS_ASSIGN | TIMES_ASSIGN | POW_ASSIGN
+
+acessoOp: OPEN_BRACKETS expressao CLOSE_BRACKETS
+
+expressao: disjuncao
+
+disjuncao: conjuncao (OR conjuncao)*
+
+conjuncao: comparacao (AND comparacao)*
+
+comparacao: aritmetica (operador_comp aritmetica)*
+
+operador_comp: EQUAL | DIFFERENT | LESS | GREATER | LESS_EQUAL | GREATER_EQUAL
+
+aritmetica: termo (operador_adi termo)*
+
+operador_adi: PLUS | MINUS
+
+termo: fator (operador_mult fator)*
+
+operador_mult: TIMES | DIV | MOD
+
+fator: base (POW base)*
+
+base: primario chamadaOp
+
+chamadaOp: OPEN_PARENTHESIS corpoLista CLOSE_PARENTHESIS
+
+primario: INT | DEC | STRING | BOOLEAN | ID | lista | OPEN_PARENTHESIS expressao CLOSE_PARENTHESIS
+
+lista: OPEN_BRACKETS corpoLista CLOSE_BRACKETS
+
+corpoLista: (expressao (COMMA expressao)*)? 
+
+condicional: OP_IF expressao OPEN_BRACES bloco CLOSE_BRACES senao
+
+senao: OP_ELSE OPEN_BRACES bloco CLOSE_BRACES
+
+laco_while: OP_WHILE expressao OPEN_BRACES bloco CLOSE_BRACES
+
+laco_for: OP_FOR ID OP_DO expressao OPEN_BRACES bloco CLOSE_BRACES
+
+funcao_def: OP_FUNCTION ID OPEN_PARENTHESIS parametros CLOSE_PARENTHESIS OPEN_BRACES bloco CLOSE_BRACES
+
+parametros: (ID (COMMA ID)*)?
+
+retorno: OP_RETURN expressao?
+
+comando_print: OP_PRINT OPEN_PARENTHESIS corpoLista CLOSE_PARENTHESIS
+
+comando_input: OP_INPUT OPEN_PARENTHESIS ID CLOSE_PARENTHESIS
+
+comando_continue: OP_CONTINUE
+
+comando_break: OP_BREAK
 
 ```
