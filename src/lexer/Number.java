@@ -15,10 +15,8 @@ public class Number extends AFD {
                 code.next();
                 number += readNumber(code);
             }
-            if (isTokenSeparator(code)){
-                String tokenType = number.contains(".") ? "DEC" : "INT";
-                return new Token(tokenType, number);
-            }
+            String tokenType = number.contains(".") ? "DEC" : "INT";
+            return new Token(tokenType, number);
         }
         return null;
     }

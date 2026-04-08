@@ -1,4 +1,4 @@
-# Император (The Empress) - Compilador de Java para ? 
+# Император (The Empress) - Linguagem feita em Java para ? 
 
 ## Instalação 
 
@@ -21,6 +21,9 @@ Acesse o link ![google.com](https://google.com) para instalar e criar seu arquiv
 - Else: иначе
 - Print: печать
 - Input: входной
+- List: список
+- Continue: продолжать
+- Break: перерыв
 
 ## Expressões Regulares
 
@@ -66,4 +69,20 @@ Acesse o link ![google.com](https://google.com) para instalar e criar seu arquiv
 - OP_RETURN -> ``` 'вернуть' ```
 - OP_PRINT -> ``` 'печать' ```
 - OP_INPUT -> ``` 'входной' ```
+- OP_CONTINUE -> ``` 'продолжать' ```
+- OP_BREAK -> ``` 'перерыв' ```
 - EOF -> ``` '$' ```
+
+
+
+## Gramática 
+```
+- programa: bloco
+- bloco: cmd bloco |  ε
+- cmd: cmdId | cmdIf
+- cmdId: ID acesso complemento
+- cmdIf: <OP_IF> expressao '{' bloco '}'
+- cmdElse: <OP_ELSE> '{' bloco '}'
+- atribNormal: <ASSIGN> valor
+
+```

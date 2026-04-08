@@ -1,6 +1,7 @@
-numero := 1
+3numero := 1
 numero_decimal := 1.1
 входной(numero2)
+lista := [1,2,3numero,d]
 @comentario
 печать(numero + numero2)
 печать( numero_decimal + numero2)

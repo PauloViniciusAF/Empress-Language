@@ -30,7 +30,7 @@ public class specialCharacters extends AFD {
                 code.next();
                 return new Token("CLOSE_PARENTHESIS", ")");
             
-            // Arithmetic Operators
+            // Arithmetic Operators & Assign
             case '+':
                 code.next();
                 if (code.current() == ':') {
@@ -97,7 +97,6 @@ public class specialCharacters extends AFD {
                     code.next();
                     return new Token("EQUAL", "==");
                 }
-                return new Token("ASSIGN", "=");
             case '!':
                 code.next();
                 if (code.current() == '=') {

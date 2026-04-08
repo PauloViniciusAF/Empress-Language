@@ -20,6 +20,8 @@ public class reservedWords {
         RESERVED.put("вернуть", "OP_RETURN");           //return
         RESERVED.put("печать", "OP_PRINT");             //print
         RESERVED.put("входной", "OP_INPUT");            //input
+        RESERVED.put("продолжать", "OP_INPUT");         //continue
+        RESERVED.put("перерыв", "OP_INPUT");            //break
         RESERVED.put("истинный", "BOOLEAN");            //true
         RESERVED.put("ложь", "BOOLEAN");                //false
         RESERVED.put("интеграл", "TYPE");               //integral

@@ -15,9 +15,7 @@ public class IdentifierStart extends AFD {
                 code.next();
                 text += readLetter(code);
             }
-            if (isTokenSeparator(code)){
-                return new Token("ID", text);
-            }
+            return new Token("ID", text);
         }
         return null;
     }
