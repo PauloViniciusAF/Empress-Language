@@ -10,7 +10,7 @@ Acesse o link ![google.com](https://google.com) para instalar e criar seu arquiv
 - False: ложь
 - Integer: целое число
 - String: строка
-- Decimal: десятичная дробь
+- Decimal: десятичный
 - Boolean: логический
 - Do: делать
 - While: пока
@@ -19,21 +19,25 @@ Acesse o link ![google.com](https://google.com) para instalar e criar seu arquiv
 - Return: вернуть
 - If: если
 - Else: иначе
+- Print: печать
+- Input: входной
 
 ## Expressões Regulares
 
 - INT -> ```[0-9]+```
 - DEC -> ```[0-9]+.[0-9]+```
 - ID  -> ```[a-zA-Z\u0400-\u04FF]+```
-- STRING -> ``` '[a-zA-Z\u0400-\u04FF_*/@=^<>!...]+' ```
+- STRING -> ``` '"[a-zA-Z\u0400-\u04FF_*/@=^<>!...]+"' ```
 - BOOLEAN -> ``` 'истинный | ложь' ```
-- TYPE -> ``` 'целое число' | 'десятичная дробь' | 'строка' | 'логический' ```
+- TYPE -> ``` 'целое число' | 'десятичный' | 'строка' | 'логический' ```
 - PLUS -> ``` '+' ```
 - MINUS -> ``` '-' ```
 - TIMES -> ``` '*' ```
 - DIV -> ``` '/' ```
 - POW -> ``` '^' ```
 - MOD -> ``` '%' ```
+- COMMA -> ``` ',' ```
+- SEMICOLON -> ``` ';' ```
 - ASSIGN -> ``` := ```
 - PLUS_ASSIGN -> ``` '+:=' ```
 - MINUS_ASSIGN -> ``` '-:=' ```
@@ -47,10 +51,12 @@ Acesse o link ![google.com](https://google.com) para instalar e criar seu arquiv
 - DIFFERENT -> ``` '!=' ``` 
 - AND -> ``` '&' ```
 - OR -> ``` '||' ```
-- OPEN_BRACKET -> ``` '(' ```
-- CLOSE_BRACKET -> ``` ')' ```
-- OPEN_PARENTHESIS -> ``` '{' ```
-- CLOSE_PARENTHESIS -> ``` '}' ```
+- OPEN_BRACES -> ``` '{' ```
+- CLOSE_BRACES -> ``` '}' ```
+- OPEN_BRACKETS -> ``` '[' ```
+- CLOSE_BRACKETS -> ``` ']' ```
+- OPEN_PARENTHESIS -> ``` '(' ```
+- CLOSE_PARENTHESIS -> ``` ')' ```
 - OP_IF -> ``` 'если' ```
 - OP_ELSE -> ``` 'иначе' ```
 - OP_DO -> ``` 'делать' ```
@@ -58,4 +64,6 @@ Acesse o link ![google.com](https://google.com) para instalar e criar seu arquiv
 - OP_FOR -> ``` 'для' ```
 - OP_FUNCTION -> ``` 'функция' ``` 
 - OP_RETURN -> ``` 'вернуть' ```
+- OP_PRINT -> ``` 'печать' ```
+- OP_INPUT -> ``` 'входной' ```
 - EOF -> ``` '$' ```
