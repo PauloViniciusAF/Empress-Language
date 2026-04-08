@@ -1,0 +1,23 @@
+package lexer;
+
+import java.text.CharacterIterator;
+
+// ========== AFD Abstract Class ==========
+public abstract class AFD {
+    public abstract Token evaluate(CharacterIterator code);
+
+    public boolean isTokenSeparator(CharacterIterator code){
+        return code.current() == ' ' ||
+        code.current() == '+' ||
+        code.current() == '-' ||
+        code.current() == '*' ||
+        code.current() == '/' ||
+        code.current() == '(' ||
+        code.current() == ')' ||
+        code.current() == '%' ||
+        code.current() == '^' ||
+        code.current() == '=' ||
+        code.current() == '\n' ||
+        code.current() == CharacterIterator.DONE;
+    }
+}
