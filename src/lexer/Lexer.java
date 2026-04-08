@@ -294,21 +294,21 @@ class reservedWords {
 
     static {
         // Language Keywords with proper token types
-        RESERVED.put("если", "OP_IF");
-        RESERVED.put("иначе", "OP_ELSE");
-        RESERVED.put("делать", "OP_DO");
-        RESERVED.put("для", "OP_FOR");
-        RESERVED.put("пока", "OP_WHILE");
-        RESERVED.put("функция", "OP_FUNCTION");
-        RESERVED.put("вернуть", "OP_RETURN");
-        RESERVED.put("печать", "OP_PRINT");
-        RESERVED.put("входной", "OP_INPUT");
-        RESERVED.put("истинный", "BOOLEAN");
-        RESERVED.put("ложь", "BOOLEAN");
-        RESERVED.put("целое число", "TYPE");
-        RESERVED.put("строка", "TYPE");
-        RESERVED.put("десятичный", "TYPE");
-        RESERVED.put("логический", "TYPE");
+        RESERVED.put("если", "OP_IF");                  //if 
+        RESERVED.put("иначе", "OP_ELSE");               //else       
+        RESERVED.put("делать", "OP_DO");                //do
+        RESERVED.put("для", "OP_FOR");                  //for
+        RESERVED.put("пока", "OP_WHILE");               //while
+        RESERVED.put("функция", "OP_FUNCTION");         //function
+        RESERVED.put("вернуть", "OP_RETURN");           //return
+        RESERVED.put("печать", "OP_PRINT");             //print
+        RESERVED.put("входной", "OP_INPUT");            //input
+        RESERVED.put("истинный", "BOOLEAN");            //true
+        RESERVED.put("ложь", "BOOLEAN");                //false
+        RESERVED.put("интеграл", "TYPE");               //integral
+        RESERVED.put("строка", "TYPE");                 //string
+        RESERVED.put("десятичный", "TYPE");             //decimal
+        RESERVED.put("логический", "TYPE");             //boolean
     }
 
     public static boolean isReserved(String word) {

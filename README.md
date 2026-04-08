@@ -8,7 +8,7 @@ Acesse o link ![google.com](https://google.com) para instalar e criar seu arquiv
 
 - True: истинный
 - False: ложь
-- Integer: целое число
+- Integer: интеграл
 - String: строка
 - Decimal: десятичный
 - Boolean: логический
@@ -29,7 +29,7 @@ Acesse o link ![google.com](https://google.com) para instalar e criar seu arquiv
 - ID  -> ```[a-zA-Z\u0400-\u04FF]+```
 - STRING -> ``` '"[a-zA-Z\u0400-\u04FF_*/@=^<>!...]+"' ```
 - BOOLEAN -> ``` 'истинный | ложь' ```
-- TYPE -> ``` 'целое число' | 'десятичный' | 'строка' | 'логический' ```
+- TYPE -> ``` 'интеграл' | 'десятичный' | 'строка' | 'логический' ```
 - PLUS -> ``` '+' ```
 - MINUS -> ``` '-' ```
 - TIMES -> ``` '*' ```
