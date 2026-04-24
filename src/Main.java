@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import lexer.Lexer;
 import lexer.Token;
+import sintatico.*;
 
 // ========== Main Method ==========
 public class Main {
@@ -17,22 +18,27 @@ public class Main {
         File myFile = new File ("example.emp");
 
         try(Scanner scanf = new Scanner(myFile)){
+            StringBuilder code = new StringBuilder();
             
             while (scanf.hasNextLine()){
-                String data = scanf.nextLine();
-                Lexer lexer = new Lexer(data);
-                tokens = lexer.getTokens();
-            
-                for(Token token : tokens){
-                    System.out.println(token);
-                }
-
+                code.append(scanf.nextLine()).append("\n");
             }
+            
+            Lexer lexer = new Lexer(code.toString());
+            tokens = lexer.getTokens();
+
+            //----------PRINT TOKENS------------        
+            // for(Token token : tokens){
+            //     System.out.println(token);
+            // }
+
             scanf.close();
         } catch (FileNotFoundException e){
             System.out.println("Erro");
             e.printStackTrace();        
         }
+        Parser parser = new Parser(tokens);
+        parser.main();
 
     }
 }
