@@ -118,7 +118,7 @@ chamadaOp: OPEN_PARENTHESIS corpoLista CLOSE_PARENTHESIS
 
 primario: INT | DEC | STRING | BOOLEAN | ID | lista | OPEN_PARENTHESIS expressao CLOSE_PARENTHESIS
 
-lista: OPEN_BRACKETS corpoLista CLOSE_BRACKETS
+lista: ID ASSIGN OPEN_BRACKETS corpoLista CLOSE_BRACKETS
 
 corpoLista: (expressao (COMMA expressao)*)? 
 
@@ -128,7 +128,7 @@ senao: OP_ELSE OPEN_BRACES bloco CLOSE_BRACES
 
 laco_while: OP_WHILE expressao OPEN_BRACES bloco CLOSE_BRACES
 
-laco_for: OP_FOR ID OP_DO expressao OPEN_BRACES bloco CLOSE_BRACES
+laco_for: OP_FOR expressao OPEN_BRACES bloco CLOSE_BRACES
 
 funcao_def: OP_FUNCTION ID OPEN_PARENTHESIS parametros CLOSE_PARENTHESIS OPEN_BRACES bloco CLOSE_BRACES
 
