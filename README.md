@@ -1,4 +1,4 @@
-# Император (The Empress) - Linguagem feita em Java para ? 
+# Император (The Empress) - Linguagem feita em Java para C
 
 ## Instalação 
 
