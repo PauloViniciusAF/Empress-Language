@@ -10,12 +10,13 @@ public class Parser {
     public Parser(List<Token> tokens) {
         this.tokens = tokens;
     }
+    // ================= FUNÇÃO PRINCIPAL =================
     public void main(){
         System.out.println("#include <stdio.h>\n#include <stdlib.h>");
         System.out.println("\n");
         System.out.println("int main(){\n");
         token = getNextToken();
-        if(ifelse() || lista()){
+        if(file()){
             if(token.tipo == "EOF"){
                 System.out.println("\nreturn 0;\n}");
                 return;
@@ -26,6 +27,46 @@ public class Parser {
         }
         erro();
     }
+
+    // ================= INICIA ARQUIVO =================
+    private boolean file(){
+        if (bloco() && token.tipo == "EOF"){
+            return true;
+        }
+        return false;
+    }
+
+    // ================= BLOCO DE CÓDIGO =================
+    private boolean bloco(){
+        if (comando()){
+            return true;
+        }
+        return false;
+    }
+
+    // ================= COMANDOS =================
+    private boolean comando(){
+        if (atribuicao()){
+            comando_if();
+            return true;
+        }
+        return false;
+    }
+
+    private boolean comando_if(){
+        if (matchT("OP_IF", "if") &&                        // if
+            condicao() &&                                                    // alguma coisa
+            matchT("OPEN_BRACKETS", "{") &&                 // {
+            bloco() &&                                                       // expressao
+            matchT("CLOSE_BRACKETS", "}")                   // }
+            )
+        {
+            return true;
+        }
+        return false;
+    }
+
+
     public Token getNextToken(){
         if(tokens.size() > 0){
             return tokens.remove(0);
@@ -38,57 +79,44 @@ public class Parser {
         System.out.println("token invalido: "+token.lexema);
     }
 
-    private boolean ifelse(){
-        if(matchL("если", "if") &&          //if
-        condicao() &&                                        //expressão
-        matchT("OPEN_BRACES", "{") &&       //{
-        bloco() &&                                           //statement
-        matchT("CLOSE_BRACES", "}") &&      //}
-        matchL("иначе", "\nelse") &&        //else
-        matchT("OPEN_BRACES", "{") &&       //{
-        bloco() &&                                           //statement
-        matchT("CLOSE_BRACES", "}"))        //}
-        {
-            return true; 
-        } 
+    // ================= ID =================
+    private boolean id(){
+        if (matchT("ID", token.lexema)){
+            return true;
+        }
         return false;
     }
-    
-    private boolean lista(){
-    if (id() &&                                             //id
-    matchT("ASSIGN", "[] = ") &&           //[]
-    matchT("OPEN_BRACKET", "{") &&        //{
-    corpoLista() &&                                         //corpoLista
-    matchT("CLOSE_BRACKET", "}"))         //}
-    {
-        return true;
-    }
-    return false;
-    }
-
-    private boolean corpoLista(){
-        if(id())
-        {
+    // ================= NUM =================
+    private boolean num(){
+        if(matchT("INT", token.lexema) || matchT("FLOAT", token.lexema)){
             return true;
         }
         return false;
     }
 
+    // ================= STRING =================
+    private boolean string(){
+        if(matchT("STR", token.lexema)){
+            return true;
+        }
+        return false;
+    }    
 
-    private boolean bloco(){
-        if (id() && operadorAtibuicao() && num()){
-            return true;
-            
-        }
-        
-        return false;
-    }
-    private boolean operadorAtibuicao(){
-        if (matchL(":=", "=")){
+    private boolean atribuicao(){
+        if (id() && operadorAtibuicao() && expressao()){    
+            System.out.println(";");
             return true;
         }
         return false;
     }
+
+    private boolean expressao(){
+        if (id() || num()){
+            return true;
+        }
+        return false;
+    }
+
     private boolean condicao(){
         System.out.print("(");
         if(id() && operador() && num()){
@@ -107,14 +135,12 @@ public class Parser {
         return false;
     }
 
-    private boolean id(){
-        if (matchT("ID", token.lexema)){
-            return true;
-        }
-        return false;
-    }
-    private boolean num(){
-        if(matchT("INT", token.lexema)){
+    private boolean operadorAtibuicao(){
+        if (matchT("ASSIGN", "=") ||
+        matchT("PLUS_ASSIGN", "+=") ||
+        matchT("TIMES_ASSIGN", "*=") ||
+        matchT("MINUS_ASSIGN", "-=") ||
+        matchT("POW_ASSIGN", "^:=")){
             return true;
         }
         return false;

@@ -15,7 +15,7 @@ public class Number extends AFD {
                 code.next();
                 number += readNumber(code);
             }
-            String tokenType = number.contains(".") ? "DEC" : "INT";
+            String tokenType = number.contains(".") ? "FLOAT" : "INT";
             return new Token(tokenType, number);
         }
         return null;

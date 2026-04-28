@@ -28,9 +28,9 @@ public class Main {
             tokens = lexer.getTokens();
 
             //----------PRINT TOKENS------------        
-            // for(Token token : tokens){
-            //     System.out.println(token);
-            // }
+            for(Token token : tokens){
+                System.out.println(token);
+            }
 
             scanf.close();
         } catch (FileNotFoundException e){
