@@ -27,17 +27,17 @@ public class Main {
             Lexer lexer = new Lexer(code.toString());
             tokens = lexer.getTokens();
 
-            //----------PRINT TOKENS------------        
-            for(Token token : tokens){
-                System.out.println(token);
-            }
+            // //----------PRINT TOKENS------------        
+            // for(Token token : tokens){
+            //     System.out.println(token);
+            // }
 
             scanf.close();
         } catch (FileNotFoundException e){
             System.out.println("Erro");
             e.printStackTrace();        
         }
-        Parser parser = new Parser(tokens);
+        Parser parser = new Parser(tokens, myFile.getName());
         parser.main();
 
     }

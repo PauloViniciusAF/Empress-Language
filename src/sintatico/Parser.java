@@ -1,24 +1,50 @@
 package sintatico;
 
 import java.util.List;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 
 import lexer.Token;
 
 public class Parser {
     List<Token> tokens;
     Token token;
-    public Parser(List<Token> tokens) {
+    private BufferedWriter writer;
+    private String outFilePath;
+
+    public Parser(List<Token> tokens, String inputFilePath) {
         this.tokens = tokens;
+        try{
+            String outName = inputFilePath;
+            if(outName.endsWith(".emp")){
+                outName = outName.substring(0, outName.length()-4) + ".c";
+            } else {
+                outName = outName + ".c";
+            }
+            this.outFilePath = outName;
+            File outFile = new File(outFilePath);
+            this.writer = new BufferedWriter(new FileWriter(outFile));
+        } catch (IOException e){
+            System.out.println("Erro ao criar arquivo de saída: " + e.getMessage());
+            this.writer = null;
+        }
     }
     // ================= FUNÇÃO PRINCIPAL =================
     public void main(){
-        System.out.println("#include <stdio.h>\n#include <stdlib.h>");
-        System.out.println("\n");
-        System.out.println("int main(){\n");
+        String headers = "#include <stdio.h>\n#include <stdlib.h>\n\n";
+        String mainStart = "int main(){\n";
+        System.out.print(headers + mainStart);
+        write(headers);
+        write(mainStart);
         token = getNextToken();
         if(file()){
-            if(token.tipo == "EOF"){
-                System.out.println("\nreturn 0;\n}");
+            if(token != null && "EOF".equals(token.tipo)){
+                String ret = "\nreturn 0;\n}";
+                System.out.print(ret);
+                writeLine(ret);
+                closeWriter();
                 return;
             }
             else{
@@ -26,6 +52,7 @@ public class Parser {
             }
         }
         erro();
+        closeWriter();
     }
 
     // ================= INICIA ARQUIVO =================
@@ -46,8 +73,7 @@ public class Parser {
 
     // ================= COMANDOS =================
     private boolean comando(){
-        if (atribuicao()){
-            comando_if();
+        if (comando_if()){
             return true;
         }
         return false;
@@ -55,7 +81,7 @@ public class Parser {
 
     private boolean comando_if(){
         if (matchT("OP_IF", "if") &&                        // if
-            condicao() &&                                                    // alguma coisa
+            condicao() &&                                                    // condicao
             matchT("OPEN_BRACKETS", "{") &&                 // {
             bloco() &&                                                       // expressao
             matchT("CLOSE_BRACKETS", "}")                   // }
@@ -103,8 +129,7 @@ public class Parser {
     }    
 
     private boolean atribuicao(){
-        if (id() && operadorAtibuicao() && expressao()){    
-            System.out.println(";");
+        if (id() && operadorAtibuicao() && expressao() && matchL(";", ";")){
             return true;
         }
         return false;
@@ -118,9 +143,7 @@ public class Parser {
     }
 
     private boolean condicao(){
-        System.out.print("(");
         if(id() && operador() && num()){
-            System.out.print(")");
             return true;
         }
         
@@ -148,6 +171,29 @@ public class Parser {
 
     private void traduz(String code){
         System.out.print(code);
+        write(code);
+    }
+
+    private void write(String code){
+        if(this.writer == null) return;
+        try{
+            this.writer.write(code);
+        } catch (IOException e){
+            System.out.println("Erro ao escrever no arquivo: " + e.getMessage());
+        }
+    }
+
+    private void writeLine(String code){
+        write(code);
+    }
+
+    private void closeWriter(){
+        if(this.writer == null) return;
+        try{
+            this.writer.close();
+        } catch (IOException e){
+            System.out.println("Erro ao fechar o arquivo: " + e.getMessage());
+        }
     }
 
     private boolean matchL(String palavra){
