@@ -24,10 +24,10 @@ public class reservedWords {
         RESERVED.put("перерыв", "OP_INPUT");            //break
         RESERVED.put("истинный", "BOOLEAN");            //true
         RESERVED.put("ложь", "BOOLEAN");                //false
-        RESERVED.put("интеграл", "TYPE");               //integral
-        RESERVED.put("строка", "TYPE");                 //string
-        RESERVED.put("десятичный", "TYPE");             //decimal
-        RESERVED.put("логический", "TYPE");             //boolean
+        RESERVED.put("интеграл", "INT_TYPE");           //integral
+        RESERVED.put("строка", "STR_TYPE");             //string
+        RESERVED.put("десятичный", "FLOAT_TYPE");       //decimal
+        RESERVED.put("логический", "BOOL_TYPE");        //boolean
     }
 
     public static boolean isReserved(String word) {

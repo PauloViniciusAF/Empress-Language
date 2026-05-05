@@ -33,7 +33,7 @@ public class Parser {
     }
     // ================= FUNÇÃO PRINCIPAL =================
     public void main(){
-        String headers = "#include <stdio.h>\n#include <stdlib.h>\n\n";
+        String headers = "#include <stdio.h>\n#include <stdlib.h>\n#include <stdbool.h>\n";
         String mainStart = "int main(){\n";
         System.out.print(headers + mainStart);
         write(headers);
@@ -41,7 +41,7 @@ public class Parser {
         token = getNextToken();
         if(file()){
             if(token != null && "EOF".equals(token.tipo)){
-                String ret = "\nreturn 0;\n}";
+                String ret = "\nreturn 0;\n}\n";
                 System.out.print(ret);
                 writeLine(ret);
                 closeWriter();
@@ -55,44 +55,6 @@ public class Parser {
         closeWriter();
     }
 
-    // ================= INICIA ARQUIVO =================
-    private boolean file(){
-        if (bloco() && token.tipo == "EOF"){
-            return true;
-        }
-        return false;
-    }
-
-    // ================= BLOCO DE CÓDIGO =================
-    private boolean bloco(){
-        if (comando()){
-            return true;
-        }
-        return false;
-    }
-
-    // ================= COMANDOS =================
-    private boolean comando(){
-        if (comando_if()){
-            return true;
-        }
-        return false;
-    }
-
-    private boolean comando_if(){
-        if (matchT("OP_IF", "if") &&                        // if
-            condicao() &&                                                    // condicao
-            matchT("OPEN_BRACKETS", "{") &&                 // {
-            bloco() &&                                                       // expressao
-            matchT("CLOSE_BRACKETS", "}")                   // }
-            )
-        {
-            return true;
-        }
-        return false;
-    }
-
-
     public Token getNextToken(){
         if(tokens.size() > 0){
             return tokens.remove(0);
@@ -103,6 +65,63 @@ public class Parser {
     }
     private void erro(){
         System.out.println("token invalido: "+token.lexema);
+    }
+
+    // ================================== GRAMÁTICA ==================================
+
+    // ================= INICIA ARQUIVO =================
+    private boolean file(){
+        if (bloco() && token != null && token.tipo.equals("EOF")){
+            return true;
+        }
+        return false;
+    }
+
+    // ================= BLOCO DE CÓDIGO =================
+    private boolean bloco(){
+        if (comando()){
+            return bloco(); // tenta executar mais comandos recursivamente
+        }
+        // Se não conseguiu nenhum comando, retorna true apenas se bloco está vazio (próximo token é válido)
+        // Se houver tokens restantes que não são comandos válidos, isso será capturado em file()
+        return true; 
+    }
+
+    // ================= COMANDOS =================
+    private boolean comando(){
+        if (comando_if() || atribuicao() || comando_for()){
+            return true;
+        }
+        return false;
+    }
+
+    // ================= LOOP FOR =================
+    private boolean comando_for(){
+        if (matchT("OP_FOR", "for") &&                      //for                                                                  
+            condicao() &&                                                   //
+            matchT("OPEN_BRACES", "{") &&
+            bloco() &&
+            matchT("CLOSE_BRACES", "}"))
+        {
+            return true;
+        }
+    
+        return false;
+    }
+
+
+    // ================= CONDIÇÃO IF =================
+    private boolean comando_if(){
+        if (matchT("OP_IF", "if") &&                        // if
+            condicao() &&                                                    // condicao
+            matchT("OPEN_BRACES", "{") &&                   // {
+            bloco() &&                                                       // faz isso
+            matchT("CLOSE_BRACES", "}")                     // }
+            )
+        {
+            return true;
+        }
+        return false;
     }
 
     // ================= ID =================
@@ -120,6 +139,18 @@ public class Parser {
         return false;
     }
 
+    // ================= TIPO DA VARIÁVEL =================
+    private boolean tipo(){
+        if (matchT("INT_TYPE", "int ") ||
+            matchT("FLOAT_TYPE", "float ") ||
+            matchT("BOOL_TYPE", "boolean ") ||
+            matchT("STR_TYPE", "string "))
+            {            
+            return true;
+        }
+        return false;
+    }
+
     // ================= STRING =================
     private boolean string(){
         if(matchT("STR", token.lexema)){
@@ -128,47 +159,69 @@ public class Parser {
         return false;
     }    
 
+    // ================= BOOLEAN =================
+    private boolean bool(){
+        if(matchT("BOOL", token.lexema)){
+            return true;
+        }
+        return false;
+    } 
+
     private boolean atribuicao(){
-        if (id() && operadorAtibuicao() && expressao() && matchL(";", ";")){
+        if (tipo() && 
+            id() && 
+            operadorAtibuicao() && 
+            expressao() && 
+            matchL(";", ";")){
             return true;
         }
         return false;
     }
 
     private boolean expressao(){
-        if (id() || num()){
+        if (id() || num() || string() || bool()){
             return true;
         }
         return false;
     }
 
     private boolean condicao(){
-        if(id() && operador() && num()){
+        if(id() && comparacao() && num()){
             return true;
         }
         
         return false;
     }
-    private boolean operador(){
-        if (matchL(">", ">") || 
-            matchL("<", "<") ||     
-            matchL("==", "==")){
+
+    // ================= COMPARAÇÃO =================
+    private boolean comparacao(){
+        if (matchT("GREATER", ">") || 
+            matchT("LESS", "<") ||     
+            matchT("EQUAL", "==") ||
+            matchT("DIFFERENT", "!=") ||
+            matchT("GREATER_EQUAL", ">=") ||
+            matchT("LESS_EQUAL", ">=")
+        ){
             return true;
         }
         return false;
     }
 
+    // ================= ATRIBUIÇÃO =================
     private boolean operadorAtibuicao(){
         if (matchT("ASSIGN", "=") ||
         matchT("PLUS_ASSIGN", "+=") ||
         matchT("TIMES_ASSIGN", "*=") ||
         matchT("MINUS_ASSIGN", "-=") ||
-        matchT("POW_ASSIGN", "^:=")){
+        matchT("POW_ASSIGN", "^=")){
             return true;
         }
         return false;
     }
 
+
+    // ================= COLOCA NO ARQUIVO EM .c =================
+    // OBS: Após debug, retirar 'System.out.print(code);'
     private void traduz(String code){
         System.out.print(code);
         write(code);
@@ -196,6 +249,10 @@ public class Parser {
         }
     }
 
+
+    // ================= LEITURA DE TOKENS =================
+
+    // Pegar Lexema do token
     private boolean matchL(String palavra){
         if(token.lexema.equals(palavra)){
             token = getNextToken();
@@ -203,15 +260,8 @@ public class Parser {
         }
         return false;
     }
-    private boolean matchT(String palavra){
-        if (token.tipo.equals(palavra)){
-            token = getNextToken();
-            return true;
-        }
-        return false;
-    }
 
-
+    // E colocar algo no arquivo .c 
     private boolean matchL(String palavra, String newcode){
         if(token.lexema.equals(palavra)){
             traduz(newcode);
@@ -221,7 +271,16 @@ public class Parser {
         return false;
     }
 
+    // Pegar tipo do token
+    private boolean matchT(String palavra){
+        if (token.tipo.equals(palavra)){
+            token = getNextToken();
+            return true;
+        }
+        return false;
+    }
 
+    // E colocar algo no arquivo .c
     private boolean matchT(String palavra, String newcode){
         if(token.tipo.equals(palavra)){
             traduz(newcode);
@@ -231,5 +290,4 @@ public class Parser {
         return false;
     }
 
-    
 }

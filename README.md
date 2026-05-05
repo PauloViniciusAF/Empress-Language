@@ -86,7 +86,7 @@ bloco: comando*
 
 comando: atribuicao | condicional | laco_while | laco_for | funcao_def | retorno | comando_print | comando_input | comando_continue | comando_break
 
-atribuicao: ID acessoOp operador_atrib expressao
+atribuicao: tipo ID acessoOp operador_atrib expressao
 
 operador_atrib: ASSIGN | PLUS_ASSIGN | MINUS_ASSIGN | TIMES_ASSIGN | POW_ASSIGN
 
