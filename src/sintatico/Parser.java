@@ -89,23 +89,212 @@ public class Parser {
 
     // ================= COMANDOS =================
     private boolean comando(){
-        if (comando_if() || atribuicao() || comando_for()){
+        if (atribuicao() ||
+            comando_if() ||  
+            laco_while() || 
+            comando_for() ||
+            comando_funcao() || 
+            comando_retorno() ||
+            comando_print() || 
+            comando_input() || 
+            comando_continue() ||
+            comando_break()){
             return true;
         }
         return false;
     }
 
-    // ================= LOOP FOR =================
-    private boolean comando_for(){
-        if (matchT("OP_FOR", "for") &&                      //for                                                                  
-            condicao() &&                                                   //
-            matchT("OPEN_BRACES", "{") &&
-            bloco() &&
-            matchT("CLOSE_BRACES", "}"))
-        {
+    // ================= ATRIBUIÇÃO DE VALOR =================
+    private boolean atribuicao(){
+        if (tipo() && 
+            id() && 
+            operadorAtibuicao() && 
+            expressao() && 
+            matchL(";", ";")){
             return true;
         }
-    
+        return false;
+    }
+
+    // ================= OPERADOR DE ATRIBUIÇÃO =================
+    private boolean operadorAtibuicao(){
+        if (matchT("ASSIGN", "=") ||
+        matchT("PLUS_ASSIGN", "+=") ||
+        matchT("TIMES_ASSIGN", "*=") ||
+        matchT("MINUS_ASSIGN", "-=") ||
+        matchT("POW_ASSIGN", "^=")){
+            return true;
+        }
+        return false;
+    }
+
+    // ================= ACESSO OPERADORES =================
+    private boolean acessoOp(){
+        if (matchT("OPEN_BRACKETS", "[") &&
+        expressao() &&
+        matchT("OPEN_BRACKETS", "]")){
+            return true;
+        }
+        return false;
+    }
+
+     // ================= EXPRESSÃO =================
+    private boolean expressao(){
+        if (disjuncao()){
+            return true;
+        }
+        return false;
+    }
+
+     // ================= DISJUNÇÃO =================
+    private boolean disjuncao(){   
+        if (!conjuncao()){
+            return false;
+        }
+        while (matchT("OR", "||")){
+            if (!conjuncao()){
+                return false;
+            }
+        }
+        return true;
+    }
+
+     // ================= CONJUNÇÃO =================
+    private boolean conjunção(){   
+        if (!comparacao()){
+            return false;
+        }
+        while (matchT("AND", "&&")){
+            if (!comparacao()){
+                return false;
+            }
+        }
+        return true;
+    }
+
+     // ================= COMPARAÇÃO =================
+    private boolean comparacao(){   
+        if (!aritmetima()){
+            return false;
+        }
+        while (op_comparacao()){
+            if (!aritmetica()){
+                return false;
+            }
+        }
+        return true;
+    }
+
+
+    // ================= OPERADOR DE COMPARAÇÃO =================
+    private boolean op_comparacao(){
+        if (matchT("GREATER", ">") || 
+            matchT("LESS", "<") ||     
+            matchT("EQUAL", "==") ||
+            matchT("DIFFERENT", "!=") ||
+            matchT("GREATER_EQUAL", ">=") ||
+            matchT("LESS_EQUAL", ">=")
+        ){
+            return true;
+        }
+        return false;
+    }
+
+
+
+     // ================= ARITMETICA =================
+    private boolean aritmetica(){   
+        if (!termo()){
+            return false;
+        }
+        while (op_adicao()){
+            if (!termo()){
+                return false;
+            }
+        }
+        return true;
+    }
+
+
+    // ================= OPERADOR DE ADIÇÃO =================
+    private boolean op_adicao(){
+        if (matchT("PLUS", "+") || 
+        matchT("MINUS", "-")){
+            return true;
+        }
+        return false;
+    }
+
+     // ================= TERMO =================
+    private boolean termo(){   
+        if (!fator()){
+            return false;
+        }
+        while (op_mult()){
+            if (!fator()){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // ================= OPERADOR DE MULTIPLICAÇÃO =================
+    private boolean op_mult(){
+        if (matchT("TIMES", "*") || 
+        matchT("DIV", "/") ||
+        matchT("MOD", "%")){
+            return true;
+        }
+        return false;
+    }
+
+
+    // ================= FATOR =================
+    private boolean fator(){   
+        if (!base()){
+            return false;
+        }
+        while (matchT("POW", "^")){
+            if (!base()){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // ================= BASE =================
+    private boolean base(){
+        if (primario() && 
+            chamadaOp()){
+            return true;
+        }
+        return false;
+    }
+
+    // ================= CHAMADA OPERAÇÃO =================
+    private boolean chamadaOperacao(){
+        if (matchT("OPEN_PARENTHESIS", "(") && 
+            corpoLista() &&
+            matchT("CLOSE_PARENTHESIS", ")")){
+            return true;
+        }
+        return false;
+    }
+
+    // ================= PRIMARIO (TIPOS) =================
+    private boolean primario(){
+        if (matchT("INT_TYPE", "int ") ||
+            matchT("FLOAT_TYPE", "float ") ||
+            matchT("BOOL_TYPE", "boolean ") ||
+            matchT("STR_TYPE", "string ")) || 
+            matchT("ID", token.tipo) ||     
+            lista() || 
+            (matchT("OPEN_PARENTHESIS", "(") &&
+            expressao() && 
+            matchT("CLOSE_PARENTHESIS", ")"))
+            {            
+            return true;
+        }
         return false;
     }
 
@@ -123,6 +312,38 @@ public class Parser {
         }
         return false;
     }
+
+    // ================= LAÇO WHILE =================
+    private boolean laco_while(){
+        if (matchT("OP_WHILE", "while") &&                  // while
+            expressao() &&                                                    // condicao
+            matchT("OPEN_BRACES", "{") &&                   // {
+            bloco() &&                                                       // faz isso
+            matchT("CLOSE_BRACES", "}")                     // }
+            )
+        {
+            return true;
+        }
+        return false;
+    }
+
+
+    // ================= LOOP FOR =================
+    private boolean comando_for(){
+        if (matchT("OP_FOR", "for") &&                      //for                                                                  
+            condicao() &&                                                   //
+            matchT("OPEN_BRACES", "{") &&
+            bloco() &&
+            matchT("CLOSE_BRACES", "}"))
+        {
+            return true;
+        }
+    
+        return false;
+    }
+
+
+    
 
     // ================= ID =================
     private boolean id(){
@@ -167,23 +388,9 @@ public class Parser {
         return false;
     } 
 
-    private boolean atribuicao(){
-        if (tipo() && 
-            id() && 
-            operadorAtibuicao() && 
-            expressao() && 
-            matchL(";", ";")){
-            return true;
-        }
-        return false;
-    }
+    
 
-    private boolean expressao(){
-        if (id() || num() || string() || bool()){
-            return true;
-        }
-        return false;
-    }
+    
 
     private boolean condicao(){
         if(id() && comparacao() && num()){
@@ -193,31 +400,9 @@ public class Parser {
         return false;
     }
 
-    // ================= COMPARAÇÃO =================
-    private boolean comparacao(){
-        if (matchT("GREATER", ">") || 
-            matchT("LESS", "<") ||     
-            matchT("EQUAL", "==") ||
-            matchT("DIFFERENT", "!=") ||
-            matchT("GREATER_EQUAL", ">=") ||
-            matchT("LESS_EQUAL", ">=")
-        ){
-            return true;
-        }
-        return false;
-    }
+    
 
-    // ================= ATRIBUIÇÃO =================
-    private boolean operadorAtibuicao(){
-        if (matchT("ASSIGN", "=") ||
-        matchT("PLUS_ASSIGN", "+=") ||
-        matchT("TIMES_ASSIGN", "*=") ||
-        matchT("MINUS_ASSIGN", "-=") ||
-        matchT("POW_ASSIGN", "^=")){
-            return true;
-        }
-        return false;
-    }
+    
 
 
     // ================= COLOCA NO ARQUIVO EM .c =================
