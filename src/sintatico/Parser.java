@@ -106,11 +106,10 @@ public class Parser {
     // ================= ATRIBUIÇÃO DE VALOR =================
     private boolean atribuicao(){
         if (tipo() && 
-            id() && 
-            acessoOp() && 
+            id() &&  
             operadorAtibuicao() &&
             expressao() && 
-            matchL(";", ";")){
+            matchT("SEMICOLON", ";")){
             return true;
         }
         return false;
@@ -283,10 +282,10 @@ public class Parser {
 
     // ================= PRIMARIO (TIPOS) =================
     private boolean primario(){
-        if (matchT("INT_TYPE", "int ") ||
-            matchT("FLOAT_TYPE", "float ") ||
-            matchT("BOOL_TYPE", "boolean ") ||
-            matchT("STR_TYPE", "string ") || 
+        if (matchT("INT", token.lexema) ||
+            matchT("FLOAT", token.lexema) ||
+            matchT("BOOL", token.lexema) ||
+            matchT("STR", token.lexema) || 
             matchT("ID", token.lexema) ||     
             lista() || 
             (matchT("OPEN_PARENTHESIS", "(") &&

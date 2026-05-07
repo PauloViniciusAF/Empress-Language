@@ -86,11 +86,10 @@ Acesse o link ![google.com](https://google.com) para instalar e criar seu arquiv
  
 (x) comando: atribuicao | condicional | laco_while | laco_for | funcao_def | retorno | comando_print | comando_input | OP_CONTINUE | OP_BREAK
  
-(x) atribuicao: tipo ID acessoOp operador_atrib expressao
+(x) atribuicao: tipo ID operador_atrib expressao
  
 (x) operador_atrib: ASSIGN | PLUS_ASSIGN | MINUS_ASSIGN | TIMES_ASSIGN | POW_ASSIGN
  
-(x) acessoOp: OPEN_BRACKETS expressao CLOSE_BRACKETS
  
 (x) expressao: disjuncao
  
