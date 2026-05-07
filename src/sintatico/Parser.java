@@ -1,11 +1,10 @@
 package sintatico;
 
-import java.util.List;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-
+import java.util.List;
 import lexer.Token;
 
 public class Parser {
@@ -56,7 +55,7 @@ public class Parser {
     }
 
     public Token getNextToken(){
-        if(tokens.size() > 0){
+        if(!tokens.isEmpty()){
             return tokens.remove(0);
         }
         else{
@@ -97,8 +96,8 @@ public class Parser {
             comando_retorno() ||
             comando_print() || 
             comando_input() || 
-            comando_continue() ||
-            comando_break()){
+            matchT("OP_CONTINUE", "continue") ||
+            matchT("OP_BREAK", "break")){
             return true;
         }
         return false;
@@ -108,7 +107,8 @@ public class Parser {
     private boolean atribuicao(){
         if (tipo() && 
             id() && 
-            operadorAtibuicao() && 
+            acessoOp() && 
+            operadorAtibuicao() &&
             expressao() && 
             matchL(";", ";")){
             return true;
@@ -160,7 +160,7 @@ public class Parser {
     }
 
      // ================= CONJUNÇÃO =================
-    private boolean conjunção(){   
+    private boolean conjuncao(){   
         if (!comparacao()){
             return false;
         }
@@ -174,7 +174,7 @@ public class Parser {
 
      // ================= COMPARAÇÃO =================
     private boolean comparacao(){   
-        if (!aritmetima()){
+        if (!aritmetica()){
             return false;
         }
         while (op_comparacao()){
@@ -272,7 +272,7 @@ public class Parser {
     }
 
     // ================= CHAMADA OPERAÇÃO =================
-    private boolean chamadaOperacao(){
+    private boolean chamadaOp(){
         if (matchT("OPEN_PARENTHESIS", "(") && 
             corpoLista() &&
             matchT("CLOSE_PARENTHESIS", ")")){
@@ -286,26 +286,65 @@ public class Parser {
         if (matchT("INT_TYPE", "int ") ||
             matchT("FLOAT_TYPE", "float ") ||
             matchT("BOOL_TYPE", "boolean ") ||
-            matchT("STR_TYPE", "string ")) || 
-            matchT("ID", token.tipo) ||     
+            matchT("STR_TYPE", "string ") || 
+            matchT("ID", token.lexema) ||     
             lista() || 
             (matchT("OPEN_PARENTHESIS", "(") &&
             expressao() && 
-            matchT("CLOSE_PARENTHESIS", ")"))
-            {            
+            matchT("CLOSE_PARENTHESIS", ")"))){            
             return true;
         }
         return false;
     }
 
+    // ================= LISTA =================
+    private boolean lista(){
+        if (matchT("ID", token.lexema) &&
+            matchT("OPEN_BRACKETS", "[") &&
+            matchT("CLOSE_BRACKETS", "]") &&
+            matchT("ASSING", "=") &&
+            matchT("OPEN_BRACES", "{") &&
+            corpoLista() && 
+            matchT("CLOSE_BRACES", "}")){            
+            return true;
+        }
+        return false;
+    }
+
+    // ================= CORPO DA LISTA =================
+    private boolean corpoLista(){
+    if (expressao()){
+        while (matchT("COMMA", ",")){
+            if (!expressao()){
+                return false;
+            }
+        }
+    }
+    return true; 
+}
 
     // ================= CONDIÇÃO IF =================
     private boolean comando_if(){
         if (matchT("OP_IF", "if") &&                        // if
-            condicao() &&                                                    // condicao
+            expressao() &&                                                   // condicao
             matchT("OPEN_BRACES", "{") &&                   // {
             bloco() &&                                                       // faz isso
-            matchT("CLOSE_BRACES", "}")                     // }
+            matchT("CLOSE_BRACES", "}") &&                  // }
+            comando_else()
+            )
+        {
+            return true;
+        }
+        return false;
+    }
+
+    // ================= CONDIÇÃO ELSE =================
+    private boolean comando_else(){
+        if (matchT("OP_ELSE", "else") &&                    
+            expressao() &&                                                   
+            matchT("OPEN_BRACES", "{") &&                  
+            bloco() &&                                                       
+            matchT("CLOSE_BRACES", "}")                    
             )
         {
             return true;
@@ -327,7 +366,6 @@ public class Parser {
         return false;
     }
 
-
     // ================= LOOP FOR =================
     private boolean comando_for(){
         if (matchT("OP_FOR", "for") &&                      //for                                                                  
@@ -342,8 +380,69 @@ public class Parser {
         return false;
     }
 
+    // ================= FUNÇÃO =================
+    private boolean comando_funcao(){
+        if (matchT("OP_FUNCTION") &&                                                                       
+            matchT("ID", token.lexema) &&
+            matchT("OPEN_PARENTHESIS", "(") &&
+            parametros() &&
+            matchT("CLOSE_PARENTHESIS", ")") &&
+            matchT("OPEN_BRACES", "{") &&
+            bloco() &&
+            matchT("CLOSE_BRACES", "}"))
+        {
+            return true;
+        }
+    
+        return false;
+    }
+
+
+    // ================= PARÂMETROS =================
+    private boolean parametros(){
+    if (matchT("ID", token.lexema)){
+        while (matchT("COMMA", ",")){
+            if (!matchT("ID", token.lexema)){
+                return false;
+            }
+        }
+    }
+    return true; 
+    }
 
     
+    // ================= RETORNO =================
+    private boolean comando_retorno(){
+        if (matchT("OP_RETURN", "return")){
+            expressao();
+            return true;
+        }
+        return false;
+    }
+
+
+    // ================= PRINT =================
+    private boolean comando_print(){
+        if (matchT("OP_PRINT", "printf") && 
+        matchT("OPEN_PARENTHESIS", "(") &&
+        corpoLista() &&
+        matchT("CLOSE_PARENTHESIS", ")")){
+            return true;
+        }
+        return false;
+    }
+
+    // ================= INPUT =================
+    private boolean comando_input(){
+        if (matchT("OP_INPUT", "scanf") && 
+        matchT("OPEN_PARENTHESIS", "(") &&
+        matchT("ID", token.lexema) &&
+        matchT("CLOSE_PARENTHESIS", ")")){
+            return true;
+        }
+        return false;
+    }
+
 
     // ================= ID =================
     private boolean id(){

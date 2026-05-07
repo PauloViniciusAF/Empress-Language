@@ -84,7 +84,7 @@ Acesse o link ![google.com](https://google.com) para instalar e criar seu arquiv
 
 (x) bloco: comando* 
  
-(x) comando: atribuicao | condicional | laco_while | laco_for | funcao_def | retorno | comando_print | comando_input | comando_continue | comando_break
+(x) comando: atribuicao | condicional | laco_while | laco_for | funcao_def | retorno | comando_print | comando_input | OP_CONTINUE | OP_BREAK
  
 (x) atribuicao: tipo ID acessoOp operador_atrib expressao
  
@@ -116,32 +116,29 @@ Acesse o link ![google.com](https://google.com) para instalar e criar seu arquiv
  
 (x) chamadaOp: OPEN_PARENTHESIS corpoLista CLOSE_PARENTHESIS
  
-( ) primario: INT | DEC | STRING | BOOLEAN | ID | lista | OPEN_PARENTHESIS expressao CLOSE_PARENTHESIS
+(x) primario: INT | DEC | STRING | BOOLEAN | ID | lista | OPEN_PARENTHESIS expressao CLOSE_PARENTHESIS
  
-( ) lista: ID ASSIGN OPEN_BRACKETS corpoLista CLOSE_BRACKETS
+(x) lista: ID ASSIGN OPEN_BRACKETS corpoLista CLOSE_BRACKETS
  
-( ) corpoLista: (expressao (COMMA expressao)*)? 
+(x) corpoLista: (expressao (COMMA expressao)*)? 
  
-( ) condicional: OP_IF expressao OPEN_BRACES bloco CLOSE_BRACES senao
+(x) condicional: OP_IF expressao OPEN_BRACES bloco CLOSE_BRACES senao
  
-( ) senao: OP_ELSE OPEN_BRACES bloco CLOSE_BRACES
+(x) senao: OP_ELSE OPEN_BRACES bloco CLOSE_BRACES
  
-( ) laco_while: OP_WHILE expressao OPEN_BRACES bloco CLOSE_BRACES
+(x) laco_while: OP_WHILE expressao OPEN_BRACES bloco CLOSE_BRACES
  
-( ) laco_for: OP_FOR expressao OPEN_BRACES bloco CLOSE_BRACES
+(x) laco_for: OP_FOR expressao OPEN_BRACES bloco CLOSE_BRACES
  
-( ) funcao_def: OP_FUNCTION ID OPEN_PARENTHESIS parametros CLOSE_PARENTHESIS OPEN_BRACES bloco CLOSE_BRACES
+(x) funcao_def: OP_FUNCTION ID OPEN_PARENTHESIS parametros CLOSE_PARENTHESIS OPEN_BRACES bloco CLOSE_BRACES
  
-( ) parametros: (ID (COMMA ID)*)?
+(x) parametros: (ID (COMMA ID)*)?
  
-( ) retorno: OP_RETURN expressao?
+(x) retorno: OP_RETURN expressao?
  
-( ) comando_print: OP_PRINT OPEN_PARENTHESIS corpoLista CLOSE_PARENTHESIS
+(x) comando_print: OP_PRINT OPEN_PARENTHESIS corpoLista CLOSE_PARENTHESIS
  
-( ) comando_input: OP_INPUT OPEN_PARENTHESIS ID CLOSE_PARENTHESIS
+(x) comando_input: OP_INPUT OPEN_PARENTHESIS ID CLOSE_PARENTHESIS
  
-( ) comando_continue: OP_CONTINUE
- 
-( ) comando_break: OP_BREAK
 
 ```
