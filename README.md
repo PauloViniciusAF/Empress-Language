@@ -80,68 +80,68 @@ Acesse o link ![google.com](https://google.com) para instalar e criar seu arquiv
 ### OBS: termos em caps lock são terminais
 ```
 
-file: bloco EOF
+(x) file: bloco EOF
 
-bloco: comando* 
-
-comando: atribuicao | condicional | laco_while | laco_for | funcao_def | retorno | comando_print | comando_input | comando_continue | comando_break
-
-atribuicao: tipo ID acessoOp operador_atrib expressao
-
-operador_atrib: ASSIGN | PLUS_ASSIGN | MINUS_ASSIGN | TIMES_ASSIGN | POW_ASSIGN
-
-acessoOp: OPEN_BRACKETS expressao CLOSE_BRACKETS
-
-expressao: disjuncao
-
-disjuncao: conjuncao (OR conjuncao)*
-
-conjuncao: comparacao (AND comparacao)*
-
-comparacao: aritmetica (operador_comp aritmetica)*
-
-operador_comp: EQUAL | DIFFERENT | LESS | GREATER | LESS_EQUAL | GREATER_EQUAL
-
-aritmetica: termo (operador_adi termo)*
-
-operador_adi: PLUS | MINUS
-
-termo: fator (operador_mult fator)*
-
-operador_mult: TIMES | DIV | MOD
-
-fator: base (POW base)*
-
-base: primario chamadaOp
-
-chamadaOp: OPEN_PARENTHESIS corpoLista CLOSE_PARENTHESIS
-
-primario: INT | DEC | STRING | BOOLEAN | ID | lista | OPEN_PARENTHESIS expressao CLOSE_PARENTHESIS
-
-lista: ID ASSIGN OPEN_BRACKETS corpoLista CLOSE_BRACKETS
-
-corpoLista: (expressao (COMMA expressao)*)? 
-
-condicional: OP_IF expressao OPEN_BRACES bloco CLOSE_BRACES senao
-
-senao: OP_ELSE OPEN_BRACES bloco CLOSE_BRACES
-
-laco_while: OP_WHILE expressao OPEN_BRACES bloco CLOSE_BRACES
-
-laco_for: OP_FOR expressao OPEN_BRACES bloco CLOSE_BRACES
-
-funcao_def: OP_FUNCTION ID OPEN_PARENTHESIS parametros CLOSE_PARENTHESIS OPEN_BRACES bloco CLOSE_BRACES
-
-parametros: (ID (COMMA ID)*)?
-
-retorno: OP_RETURN expressao?
-
-comando_print: OP_PRINT OPEN_PARENTHESIS corpoLista CLOSE_PARENTHESIS
-
-comando_input: OP_INPUT OPEN_PARENTHESIS ID CLOSE_PARENTHESIS
-
-comando_continue: OP_CONTINUE
-
-comando_break: OP_BREAK
+(x) bloco: comando* 
+ 
+(x) comando: atribuicao | condicional | laco_while | laco_for | funcao_def | retorno | comando_print | comando_input | comando_continue | comando_break
+ 
+(x) atribuicao: tipo ID acessoOp operador_atrib expressao
+ 
+(x) operador_atrib: ASSIGN | PLUS_ASSIGN | MINUS_ASSIGN | TIMES_ASSIGN | POW_ASSIGN
+ 
+(x) acessoOp: OPEN_BRACKETS expressao CLOSE_BRACKETS
+ 
+(x) expressao: disjuncao
+ 
+(x) disjuncao: conjuncao (OR conjuncao)*
+ 
+(x) conjuncao: comparacao (AND comparacao)*
+ 
+(x) comparacao: aritmetica (operador_comp aritmetica)*
+ 
+(x) operador_comp: EQUAL | DIFFERENT | LESS | GREATER | LESS_EQUAL | GREATER_EQUAL
+ 
+(x) aritmetica: termo (operador_adi termo)*
+ 
+(x) operador_adi: PLUS | MINUS
+ 
+(x) termo: fator (operador_mult fator)*
+ 
+(x) operador_mult: TIMES | DIV | MOD
+ 
+(x) fator: base (POW base)*
+ 
+(x) base: primario chamadaOp
+ 
+(x) chamadaOp: OPEN_PARENTHESIS corpoLista CLOSE_PARENTHESIS
+ 
+( ) primario: INT | DEC | STRING | BOOLEAN | ID | lista | OPEN_PARENTHESIS expressao CLOSE_PARENTHESIS
+ 
+( ) lista: ID ASSIGN OPEN_BRACKETS corpoLista CLOSE_BRACKETS
+ 
+( ) corpoLista: (expressao (COMMA expressao)*)? 
+ 
+( ) condicional: OP_IF expressao OPEN_BRACES bloco CLOSE_BRACES senao
+ 
+( ) senao: OP_ELSE OPEN_BRACES bloco CLOSE_BRACES
+ 
+( ) laco_while: OP_WHILE expressao OPEN_BRACES bloco CLOSE_BRACES
+ 
+( ) laco_for: OP_FOR expressao OPEN_BRACES bloco CLOSE_BRACES
+ 
+( ) funcao_def: OP_FUNCTION ID OPEN_PARENTHESIS parametros CLOSE_PARENTHESIS OPEN_BRACES bloco CLOSE_BRACES
+ 
+( ) parametros: (ID (COMMA ID)*)?
+ 
+( ) retorno: OP_RETURN expressao?
+ 
+( ) comando_print: OP_PRINT OPEN_PARENTHESIS corpoLista CLOSE_PARENTHESIS
+ 
+( ) comando_input: OP_INPUT OPEN_PARENTHESIS ID CLOSE_PARENTHESIS
+ 
+( ) comando_continue: OP_CONTINUE
+ 
+( ) comando_break: OP_BREAK
 
 ```
