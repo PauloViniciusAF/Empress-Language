@@ -10,10 +10,12 @@ public class Lexer {
     private List<Token> tokens;
     private List<AFD> afds;
     private CharacterIterator code;
+    private int currentLine = 1;  // Rastrear linha atual
 
     public Lexer(String code){
         tokens = new ArrayList<>();
         this.code = new StringCharacterIterator(code);
+        this.currentLine = 1;
         afds = new ArrayList<>();
         afds.add(new Number());
         afds.add(new Alphabet());
@@ -24,6 +26,9 @@ public class Lexer {
 
     public void skipWhiteSpace(){
         while (code.current() == ' ' || code.current() == '\n'){
+            if (code.current() == '\n') {
+                currentLine++;
+            }
             code.next();
         }
     }
@@ -69,10 +74,13 @@ public class Lexer {
             t = searchNextToken();
             if (t == null) error();
             
+            // Adicionar linha ao token
+            t.linha = currentLine;
+            
             // Check if ID token is a reserved word
             if (t.tipo.equals("ID") && reservedWords.isReserved(t.lexema)) {
                 String tokenType = reservedWords.getTokenType(t.lexema);
-                t = new Token(tokenType, t.lexema);
+                t = new Token(tokenType, t.lexema, currentLine);
             }
             
             tokens.add(t);

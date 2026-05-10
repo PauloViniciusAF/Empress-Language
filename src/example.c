@@ -2,4 +2,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 int main(){
-int inteiro=10
+printf(5);
+return 0;
+}

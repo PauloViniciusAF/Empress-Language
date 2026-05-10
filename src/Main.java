@@ -12,7 +12,7 @@ public class Main {
     public static void main(String[] args) throws IOException {
         
         List<Token> tokens = null;
-        
+        String sourceCode = null;
 
         //Scanning a file
         File myFile = new File ("example.emp");
@@ -24,20 +24,21 @@ public class Main {
                 code.append(scanf.nextLine()).append("\n");
             }
             
-            Lexer lexer = new Lexer(code.toString());
+            sourceCode = code.toString();
+            Lexer lexer = new Lexer(sourceCode);
             tokens = lexer.getTokens();
 
-            //----------PRINT TOKENS------------        
-            for(Token token : tokens){
-                System.out.println(token);
-            }
+            // //----------PRINT TOKENS------------        
+            // for(Token token : tokens){
+            //     System.out.println(token);
+            // }
 
             scanf.close();
         } catch (FileNotFoundException e){
             System.out.println("Erro");
             e.printStackTrace();        
         }
-        Parser parser = new Parser(tokens, myFile.getName());
+        Parser parser = new Parser(tokens, myFile.getName(), sourceCode);
         parser.main();
 
     }
