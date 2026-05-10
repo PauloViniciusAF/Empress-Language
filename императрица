@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# Script para compilar e executar arquivos Empress Language (.emp)
+
+if [ $# -lt 1 ]; then
+    echo "Uso: императрица <arquivo.emp>"
+    exit 1
+fi
+
+# Verifica se o arquivo existe
+if [ ! -f "$1" ]; then
+    echo "Erro: Arquivo '$1' não encontrado"
+    exit 1
+fi
+
+# Verifica se é um arquivo .emp
+if [[ ! "$1" =~ \.emp$ ]]; then
+    echo "Erro: O arquivo deve ter extensão .emp"
+    exit 1
+fi
+
+# Diretório do script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SRC_DIR="$SCRIPT_DIR/src"
+BUILD_DIR="$SCRIPT_DIR/build"
+
+# Cria o diretório de build se não existir
+mkdir -p "$BUILD_DIR"
+
+
+# Compila os arquivos Java
+javac -d "$BUILD_DIR" "$SRC_DIR"/lexer/*.java "$SRC_DIR"/sintatico/*.java "$SRC_DIR"/Main.java 2>&1
+
+# Verifica se a compilação foi bem-sucedida
+if [ $? -ne 0 ]; then
+    echo "Erro na compilação"
+    exit 1
+fi
+
+# Executa o programa com o arquivo como argumento
+cd "$SCRIPT_DIR"
+
+# Verifica se o argumento --tree foi passado
+if [ "$2" = "--tree" ]; then
+    java -cp "$BUILD_DIR" Main "$1" --tree
+else
+    java -cp "$BUILD_DIR" Main "$1"
+fi

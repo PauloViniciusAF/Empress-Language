@@ -1,8 +1,21 @@
-# Император (The Empress) - Linguagem feita em Java para C
+# Императрица (Imperatriz) - Linguagem feita em Java para C
 
 ## Instalação 
 
 Acesse o link ![google.com](https://google.com) para instalar e criar seu arquivo .emp
+
+## Como executar
+
+```bash 
+./императрица <arquivo>.emp --tree
+```
+
+## Argumentos opcionais
+
+```bash 
+--tree      //Retorna a AST no terminal
+```
+
 
 ## Glossário
 
@@ -141,3 +154,7 @@ Acesse o link ![google.com](https://google.com) para instalar e criar seu arquiv
  
 
 ```
+
+
+
+

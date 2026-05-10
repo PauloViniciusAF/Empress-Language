@@ -13,9 +13,23 @@ public class Main {
         
         List<Token> tokens = null;
         String sourceCode = null;
+        boolean showTree = false;
+        String fileName = null;
 
-        //Scanning a file
-        File myFile = new File ("example.emp");
+        for (String arg : args) {
+            if (arg.equals("--tree")) {
+                showTree = true;
+            } else if (fileName == null) {
+                fileName = arg;
+            }
+        }
+
+        if (fileName == null) {
+            System.err.println("Uso: java Main <arquivo.emp> [--tree]");
+            System.exit(1);
+        }
+        
+        File myFile = new File(fileName);
 
         try(Scanner scanf = new Scanner(myFile)){
             StringBuilder code = new StringBuilder();
@@ -38,7 +52,7 @@ public class Main {
             System.out.println("Erro");
             e.printStackTrace();        
         }
-        Parser parser = new Parser(tokens, myFile.getName(), sourceCode);
+        Parser parser = new Parser(tokens, myFile.getName(), sourceCode, showTree);
         parser.main();
 
     }

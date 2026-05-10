@@ -39,8 +39,12 @@ public class specialCharacters extends AFD {
                         code.next();
                         return new Token("PLUS_ASSIGN", "+:=");
                     }
-                    code.setIndex(pos + 1);
                 }
+                if (code.current() == '+'){
+                    code.next();
+                    return new Token("INCREMENT", "++");
+                }
+                code.setIndex(pos + 1);
                 return new Token("PLUS", "+");
             case '-':
                 code.next();
@@ -50,8 +54,12 @@ public class specialCharacters extends AFD {
                         code.next();
                         return new Token("MINUS_ASSIGN", "-:=");
                     }
-                    code.setIndex(pos + 1);
                 }
+                if (code.current() == '-'){
+                    code.next();
+                    return new Token("DECREMENT", "--");
+                }
+                code.setIndex(pos + 1);
                 return new Token("MINUS", "-");
             case '*':
                 code.next();

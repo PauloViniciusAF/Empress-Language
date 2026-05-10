@@ -1,0 +1,6 @@
+функция funcao(){
+    интеграл inteiro := 0;
+    для(inteiro; inteiro < 10; inteiro++){
+        печать("Numero %d", inteiro);
+    }
+}

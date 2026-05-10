@@ -63,7 +63,7 @@ public class Lexer {
     }
 
     public void error(){
-        throw new RuntimeException("Error: token not recognized: " + code.current());
+        throw new RuntimeException("ERRO: \n Token '" + code.current() + "' não reconhecido");
     }
 
     public List<Token> getTokens(){

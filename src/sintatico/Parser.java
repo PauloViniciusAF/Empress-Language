@@ -16,19 +16,44 @@ public class Parser {
     private String[] codeLines;  // Armazena as linhas do código fonte
     private int currentLine = 1;  // Rastreia a linha atual
     private Tree ast;  // Árvore sintática
+    private boolean showTree; // Controla se a AST deve ser impressa
 
     public Parser(List<Token> tokens, String inputFilePath, String sourceCode) {
+        this(tokens, inputFilePath, sourceCode, false, null);
+    }
+
+    public Parser(List<Token> tokens, String inputFilePath, String sourceCode, boolean showTree) {
+        this(tokens, inputFilePath, sourceCode, showTree, null);
+    }
+
+    public Parser(List<Token> tokens, String inputFilePath, String sourceCode, String outputDir) {
+        this(tokens, inputFilePath, sourceCode, false, outputDir);
+    }
+
+    public Parser(List<Token> tokens, String inputFilePath, String sourceCode, boolean showTree, String outputDir) {
         this.tokens = tokens;
         this.codeLines = sourceCode.split("\n");
         this.ast = new Tree();  // Inicializa a árvore sintática
+        this.showTree = showTree;
         try{
-            String outName = inputFilePath;
+            String outName = new File(inputFilePath).getName();
             if(outName.endsWith(".emp")){
                 outName = outName.substring(0, outName.length()-4) + ".c";
             } else {
                 outName = outName + ".c";
             }
-            this.outFilePath = outName;
+            
+            // Define o caminho de saída
+            if(outputDir != null && !outputDir.isEmpty()) {
+                File outDirFile = new File(outputDir);
+                if(!outDirFile.exists()) {
+                    outDirFile.mkdirs();
+                }
+                this.outFilePath = outputDir + File.separator + outName;
+            } else {
+                this.outFilePath = outName;
+            }
+            
             File outFile = new File(outFilePath);
             this.writer = new BufferedWriter(new FileWriter(outFile));
         } catch (IOException e){
@@ -50,7 +75,9 @@ public class Parser {
                 // System.out.print(ret);  DEBUG
                 writeLine(ret);
                 closeWriter();
-                ast.printTree();  // Exibe a árvore sintática
+                if (showTree) {
+                    ast.printTree();  // Exibe a árvore sintática
+                }
                 return;
             }
             else{
@@ -145,7 +172,7 @@ public class Parser {
         if (token.tipo.equals("OP_CONTINUE") || token.tipo.equals("OP_BREAK")){
             return matchT("OP_CONTINUE", "continue") || matchT("OP_BREAK", "break");
         }
-        if (token.tipo.equals("ID")) return cmdID();
+        if (tipo()) return cmdID();
         
         return false;
     }
@@ -155,23 +182,14 @@ public class Parser {
     private boolean cmdID(){
         ast.addRuleNode("cmdID");
         // Tenta declaração com tipo
-        if (tipo()){
-            if (id() && acessoListaOp() && complemento()){
-                lastType = null;  // Reseta o tipo após usar
-                if (matchT("SEMICOLON", ";")) {
-                    ast.endRuleNode();
-                    return true;
-                }
+        if (id() && acessoListaOp() && complemento()){
+            lastType = null;  // Reseta o tipo após usar
+            if (matchT("SEMICOLON", ";")) {
+                ast.endRuleNode();
+                return true;
             }
-            lastType = null;  // Reseta o tipo em caso de erro
-            ast.endRuleNode();
-            return false;
         }
-        // Tenta reatribuição sem tipo
-        if (id() && acessoListaOp() && complemento() && matchT("SEMICOLON", ";")){
-            ast.endRuleNode();
-            return true;
-        }
+        lastType = null;  // Reseta o tipo em caso de erro
         ast.endRuleNode();
         return false;
     }
@@ -342,8 +360,14 @@ public class Parser {
     }
 
     // ================= ELEMENTO =================
-    // elemento -> ID X | NUM | STRING | BOOL | (expressaoLogica)
+    // elemento -> (INCREMENT | DECREMENT) ID | ID X | NUM | STRING | BOOL | (expressaoLogica)
     private boolean elemento(){
+        if (matchT("INCREMENT", "++") || matchT("DECREMENT", "--")){
+            if (id()){
+                return X();
+            }
+            return false;
+        }
         if (id()){
             return X();
         }
@@ -351,14 +375,9 @@ public class Parser {
             matchT("FLOAT", token.lexema)){
             return true;
         }
-        // Para STRING, adiciona aspas se for tipo string
+        // Adiciona aspas
         if (token.tipo.equals("STR")){
-            if (lastType != null && lastType.equals("string")){
-                // Adiciona aspas ao redor do valor string
-                matchT("STR", "\"" + token.lexema + "\"");
-            } else {
-                matchT("STR", token.lexema);
-            }
+            matchT("STR", "\"" + token.lexema + "\"");
             return true;
         }
         if (matchT("BOOL", token.lexema)){
@@ -371,10 +390,15 @@ public class Parser {
     }
 
     // ================= X (COMPOSIÇÃO) =================
-    // X -> composicao | ε
+    // X -> composicao X | (INCREMENT | DECREMENT) | ε
     private boolean X(){
+        // Pós-fixos (var++, var--)
+        if (matchT("INCREMENT", "++") || matchT("DECREMENT", "--")){
+            return true;
+        }
+        // Composição (acesso a arrays ou chamada de função)
         if (matchT("OPEN_BRACKETS", "[") || matchT("OPEN_PARENTHESIS", "(")){
-            return composicao();
+            return composicao() && X();
         }
         return true;
     }
@@ -474,11 +498,17 @@ public class Parser {
     }
 
     // ================= LOOP FOR =================
-    // cmdFor -> FOR variavelFor INDENT bloco DEDENT
+    // cmdFor -> FOR ( variavelFor ; expressaoRelacional ; expressaoAritmetica ) { bloco }
     private boolean cmdFor(){
         ast.addRuleNode("cmdFor");
         if (matchT("OP_FOR", "for") &&                                                              
-            variavelFor() &&                                                   
+            matchT("OPEN_PARENTHESIS", "(") &&
+            variavelFor() &&
+            matchT("SEMICOLON", ";") &&
+            expressaoRelacional() &&
+            matchT("SEMICOLON", ";") &&
+            expressaoAritmetica() &&
+            matchT("CLOSE_PARENTHESIS", ")") &&
             matchT("OPEN_BRACES", "{") &&
             bloco() &&
             matchT("CLOSE_BRACES", "}"))
@@ -491,49 +521,19 @@ public class Parser {
     }
 
     // ================= VARIÁVEL FOR =================
-    // variavelFor -> forVezes | forIntervalo | forSendo
+    // variavelFor -> tipo ID complemento | ID complemento
     private boolean variavelFor(){
-        if (forIntervalo() || forSendo() || forVezes()){
-            return true;
+        // Tenta declaração com tipo
+        if (tipo()){
+            if (id() && complemento()){
+                lastType = null;  // Reseta o tipo após usar
+                return true;
+            }
+            lastType = null;  // Reseta o tipo em caso de erro
+            return false;
         }
-        return false;
-    }
-
-    // ================= FOR VEZES =================
-    // forVezes -> expressaoAritmetica VEZES
-    private boolean forVezes(){
-        if (expressaoAritmetica() && matchT("OP_TIMES", "times")){
-            return true;
-        }
-        return false;
-    }
-
-    // ================= FOR INTERVALO =================
-    // forIntervalo -> FROM expressaoAritmetica TO expressaoAritmetica passoFor
-    private boolean forIntervalo(){
-        if (matchT("OP_FROM", "from") && 
-            expressaoAritmetica() && 
-            matchT("OP_TO", "to") && 
-            expressaoAritmetica() && 
-            passoFor()){
-            return true;
-        }
-        return false;
-    }
-
-    // ================= PASSO FOR =================
-    // passoFor -> STEP expressaoAritmetica | ε
-    private boolean passoFor(){
-        if (matchT("OP_STEP", "step")){
-            return expressaoAritmetica();
-        }
-        return true;
-    }
-
-    // ================= FOR SENDO =================
-    // forSendo -> BEING ID forIntervalo
-    private boolean forSendo(){
-        if (matchT("OP_BEING", "being") && id() && forIntervalo()){
+        // Tenta apenas atribuição
+        if (id() && complemento()){
             return true;
         }
         return false;
@@ -543,7 +543,7 @@ public class Parser {
     // cmdDefFunc -> FUNCTION ID ( listaParametros ) { bloco }
     private boolean cmdDefFunc(){
         ast.addRuleNode("cmdDefFunc");
-        if (matchT("OP_FUNCTION", "function") &&                                                                       
+        if (matchT("OP_FUNCTION", "void ") &&                                                                       
             id() &&
             matchT("OPEN_PARENTHESIS", "(") &&
             listaParametros() &&
