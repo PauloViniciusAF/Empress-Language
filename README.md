@@ -7,7 +7,7 @@ Acesse o link ![google.com](https://google.com) para instalar e criar seu arquiv
 ## Como executar
 
 ```bash 
-./императрица <arquivo>.emp --tree
+./императрица <arquivo>.emp
 ```
 
 ## Argumentos opcionais
