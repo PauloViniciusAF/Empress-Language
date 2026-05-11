@@ -92,69 +92,89 @@ Acesse o link ![google.com](https://google.com) para instalar e criar seu arquiv
 
 ## Gramática 
 
-### OBS: termos em caps lock são terminais
+### OBS: termos em caps lock são terminais, 'ε' representa produção vazia
+
 ```
+file → bloco EOF
 
-(x) file: bloco EOF
+bloco → cmd bloco | ε
 
-(x) bloco: comando* 
- 
-(x) comando: atribuicao | condicional | laco_while | laco_for | funcao_def | retorno | comando_print | comando_input | OP_CONTINUE | OP_BREAK
- 
-(x) atribuicao: tipo ID operador_atrib expressao
- 
-(x) operador_atrib: ASSIGN | PLUS_ASSIGN | MINUS_ASSIGN | TIMES_ASSIGN | POW_ASSIGN
- 
- 
-(x) expressao: disjuncao
- 
-(x) disjuncao: conjuncao (OR conjuncao)*
- 
-(x) conjuncao: comparacao (AND comparacao)*
- 
-(x) comparacao: aritmetica (operador_comp aritmetica)*
- 
-(x) operador_comp: EQUAL | DIFFERENT | LESS | GREATER | LESS_EQUAL | GREATER_EQUAL
- 
-(x) aritmetica: termo (operador_adi termo)*
- 
-(x) operador_adi: PLUS | MINUS
- 
-(x) termo: fator (operador_mult fator)*
- 
-(x) operador_mult: TIMES | DIV | MOD
- 
-(x) fator: base (POW base)*
- 
-(x) base: primario chamadaOp
- 
-(x) chamadaOp: OPEN_PARENTHESIS corpoLista CLOSE_PARENTHESIS
- 
-(x) primario: INT | DEC | STRING | BOOLEAN | ID | lista | OPEN_PARENTHESIS expressao CLOSE_PARENTHESIS
- 
-(x) lista: ID ASSIGN OPEN_BRACKETS corpoLista CLOSE_BRACKETS
- 
-(x) corpoLista: (expressao (COMMA expressao)*)? 
- 
-(x) condicional: OP_IF expressao OPEN_BRACES bloco CLOSE_BRACES senao
- 
-(x) senao: OP_ELSE OPEN_BRACES bloco CLOSE_BRACES
- 
-(x) laco_while: OP_WHILE expressao OPEN_BRACES bloco CLOSE_BRACES
- 
-(x) laco_for: OP_FOR expressao OPEN_BRACES bloco CLOSE_BRACES
- 
-(x) funcao_def: OP_FUNCTION ID OPEN_PARENTHESIS parametros CLOSE_PARENTHESIS OPEN_BRACES bloco CLOSE_BRACES
- 
-(x) parametros: (ID (COMMA ID)*)?
- 
-(x) retorno: OP_RETURN expressao?
- 
-(x) comando_print: OP_PRINT OPEN_PARENTHESIS corpoLista CLOSE_PARENTHESIS
- 
-(x) comando_input: OP_INPUT OPEN_PARENTHESIS ID CLOSE_PARENTHESIS
- 
+cmd → cmdIf | cmdFor | cmdWhile | cmdReturn | cmdDefFunc | cmdPrint | cmdInput | cmdID | OP_CONTINUE | OP_BREAK
 
+cmdID → tipo ID acessoListaOp complemento SEMICOLON | ID acessoListaOp complemento SEMICOLON
+
+acessoListaOp → acessoLista acessoListaOp | ε
+
+acessoLista → OPEN_BRACKETS expressaoAritmetica CLOSE_BRACKETS
+
+complemento → ASSIGN valor | operadorAssignOp valor | OPEN_PARENTHESIS corpoLista CLOSE_PARENTHESIS | ε
+
+operadorAssignOp → PLUS_ASSIGN | MINUS_ASSIGN | TIMES_ASSIGN | DIV_ASSIGN | MOD_ASSIGN | POW_ASSIGN
+
+valor → expressaoLogica | lista | cmdPrint | cmdInput
+
+expressaoLogica → expressaoRelacional (AND expressaoRelacional)* | expressaoRelacional (OR expressaoRelacional)*
+
+expressaoRelacional → expressaoAritmetica (opComparacao expressaoAritmetica)*
+
+opComparacao → GREATER | LESS | EQUAL | DIFFERENT | GREATER_EQUAL | LESS_EQUAL
+
+expressaoAritmetica → termo (opAdicao termo)*
+
+opAdicao → PLUS | MINUS
+
+termo → fator (opMultiplicacao fator)*
+
+opMultiplicacao → TIMES | DIV | MOD
+
+fator → elemento (POW elemento)*
+
+elemento → INCREMENT ID X
+         | DECREMENT ID X
+         | ID X
+         | INT
+         | FLOAT
+         | STR
+         | BOOL
+         | OPEN_PARENTHESIS expressaoLogica CLOSE_PARENTHESIS
+
+X → composicao X | INCREMENT | DECREMENT | ε
+
+composicao → OPEN_BRACKETS expressaoAritmetica CLOSE_BRACKETS acessoListaOp | OPEN_PARENTHESIS corpoLista CLOSE_PARENTHESIS
+
+corpoLista → valor entradaLista | ε
+
+entradaLista → COMMA valor entradaLista | ε
+
+lista → OPEN_BRACKETS corpoLista CLOSE_BRACKETS
+
+cmdIf → OP_IF valor OPEN_BRACES bloco CLOSE_BRACES cmdElse
+
+cmdElse → OP_ELSE OPEN_BRACES bloco CLOSE_BRACES | ε
+
+cmdWhile → OP_WHILE valor OPEN_BRACES bloco CLOSE_BRACES
+
+cmdFor → OP_FOR OPEN_PARENTHESIS variavelFor SEMICOLON expressaoRelacional SEMICOLON expressaoAritmetica CLOSE_PARENTHESIS OPEN_BRACES bloco CLOSE_BRACES
+
+variavelFor → tipo ID complemento | ID complemento
+
+cmdDefFunc → OP_FUNCTION ID OPEN_PARENTHESIS listaParametros CLOSE_PARENTHESIS OPEN_BRACES bloco CLOSE_BRACES
+
+listaParametros → ID entradaListaParam | ε
+
+entradaListaParam → COMMA ID entradaListaParam | ε
+
+cmdReturn → OP_RETURN valorRetorno
+
+valorRetorno → valor | ε
+
+cmdPrint → OP_PRINT OPEN_PARENTHESIS corpoLista CLOSE_PARENTHESIS SEMICOLON
+
+cmdInput → OP_INPUT OPEN_PARENTHESIS corpoLista CLOSE_PARENTHESIS SEMICOLON
+
+tipo → INT_TYPE | FLOAT_TYPE | BOOL_TYPE | STR_TYPE
+
+id → ID
 ```
 
 
