@@ -47,7 +47,9 @@ Acesse o link ![google.com](https://google.com) para instalar e criar seu arquiv
 - BOOLEAN -> ``` 'истинный | ложь' ```
 - TYPE -> ``` 'интеграл' | 'десятичный' | 'строка' | 'логический' ```
 - PLUS -> ``` '+' ```
+- INCREMENT -> ``` '++' ```
 - MINUS -> ``` '-' ```
+- DECREMENT -> ``` '--' ```
 - TIMES -> ``` '*' ```
 - DIV -> ``` '/' ```
 - POW -> ``` '^' ```
