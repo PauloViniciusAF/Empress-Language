@@ -2,7 +2,11 @@
 
 ## Instalação 
 
-Acesse o link ![google.com](https://google.com) para instalar e criar seu arquivo .emp
+Clonar o repositório do projeto 
+
+```bash
+git clone https://github.com/PauloViniciusAF/Empress-Language.git
+```
 
 ## Como executar
 
@@ -99,7 +103,8 @@ file → bloco EOF
 
 bloco → cmd bloco | ε
 
-cmd → cmdIf | cmdFor | cmdWhile | cmdReturn | cmdDefFunc | cmdPrint | cmdInput | cmdID | OP_CONTINUE | OP_BREAK
+cmd → cmdIf | cmdFor | cmdWhile | cmdReturn | cmdDefFunc | cmdPrint | cmdInput | cmdID | 
+OP_CONTINUE | OP_BREAK
 
 cmdID → tipo ID acessoListaOp complemento SEMICOLON | ID acessoListaOp complemento SEMICOLON
 
@@ -107,13 +112,16 @@ acessoListaOp → acessoLista acessoListaOp | ε
 
 acessoLista → OPEN_BRACKETS expressaoAritmetica CLOSE_BRACKETS
 
-complemento → ASSIGN valor | operadorAssignOp valor | OPEN_PARENTHESIS corpoLista CLOSE_PARENTHESIS | ε
+complemento → ASSIGN valor | operadorAssignOp valor | OPEN_PARENTHESIS corpoLista 
+CLOSE_PARENTHESIS | ε
 
-operadorAssignOp → PLUS_ASSIGN | MINUS_ASSIGN | TIMES_ASSIGN | DIV_ASSIGN | MOD_ASSIGN | POW_ASSIGN
+operadorAssignOp → PLUS_ASSIGN | MINUS_ASSIGN | TIMES_ASSIGN | DIV_ASSIGN | MOD_ASSIGN | 
+POW_ASSIGN
 
 valor → expressaoLogica | lista | cmdPrint | cmdInput
 
-expressaoLogica → expressaoRelacional (AND expressaoRelacional)* | expressaoRelacional (OR expressaoRelacional)*
+expressaoLogica → expressaoRelacional (AND expressaoRelacional)* | 
+expressaoRelacional (OR expressaoRelacional)*
 
 expressaoRelacional → expressaoAritmetica (opComparacao expressaoAritmetica)*
 
@@ -140,7 +148,8 @@ elemento → INCREMENT ID X
 
 X → composicao X | INCREMENT | DECREMENT | ε
 
-composicao → OPEN_BRACKETS expressaoAritmetica CLOSE_BRACKETS acessoListaOp | OPEN_PARENTHESIS corpoLista CLOSE_PARENTHESIS
+composicao → OPEN_BRACKETS expressaoAritmetica CLOSE_BRACKETS acessoListaOp | 
+OPEN_PARENTHESIS corpoLista CLOSE_PARENTHESIS
 
 corpoLista → valor entradaLista | ε
 
@@ -154,11 +163,13 @@ cmdElse → OP_ELSE OPEN_BRACES bloco CLOSE_BRACES | ε
 
 cmdWhile → OP_WHILE valor OPEN_BRACES bloco CLOSE_BRACES
 
-cmdFor → OP_FOR OPEN_PARENTHESIS variavelFor SEMICOLON expressaoRelacional SEMICOLON expressaoAritmetica CLOSE_PARENTHESIS OPEN_BRACES bloco CLOSE_BRACES
+cmdFor → OP_FOR OPEN_PARENTHESIS variavelFor SEMICOLON expressaoRelacional SEMICOLON 
+expressaoAritmetica CLOSE_PARENTHESIS OPEN_BRACES bloco CLOSE_BRACES
 
 variavelFor → tipo ID complemento | ID complemento
 
-cmdDefFunc → OP_FUNCTION ID OPEN_PARENTHESIS listaParametros CLOSE_PARENTHESIS OPEN_BRACES bloco CLOSE_BRACES
+cmdDefFunc → OP_FUNCTION ID OPEN_PARENTHESIS listaParametros CLOSE_PARENTHESIS 
+OPEN_BRACES bloco CLOSE_BRACES
 
 listaParametros → ID entradaListaParam | ε
 
