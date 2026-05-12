@@ -191,3 +191,10 @@ id → ID
 
 
 
+## Membros do Projeto
+
+- Paulo Vinicius Araujo Feitosa: 22.126.120-9
+- André Alves Toledo Silva: 22.122.020-5
+- Giovanne Delghingaro Montalvão: 22.126.102-7 
+- Arthur Carvalho Rotkis: 22.123.116-0
+- Fabio Martins Botelho: 22.122.068-4
