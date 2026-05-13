@@ -29,7 +29,7 @@ mkdir -p "$BUILD_DIR"
 
 
 # Compila os arquivos Java
-javac -d "$BUILD_DIR" "$SRC_DIR"/lexer/*.java "$SRC_DIR"/sintatico/*.java "$SRC_DIR"/Main.java 2>&1
+javac -d "$BUILD_DIR" "$SRC_DIR"/lexer/*.java "$SRC_DIR"/sintatico/*.java "$SRC_DIR"/semantico/*.java "$SRC_DIR"/Main.java 2>&1
 
 # Verifica se a compilação foi bem-sucedida
 if [ $? -ne 0 ]; then

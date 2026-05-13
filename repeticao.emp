@@ -1,0 +1,8 @@
+функция funcao(){
+    интеграл numeroRep := 1;
+
+    пока(numeroRep < 10){
+        печать(numeroRep);
+        numeroRep++; 
+    }
+}

@@ -6,28 +6,34 @@ import java.util.List;
 public class TreeNode {
     private int id;
     private String value;
-    private String type;  // "error", "rule", "token"
+    private String type; // "error", "rule", "token"
     private TreeNode parent;
     private List<TreeNode> children;
     private String enter;
     private String exit;
+    private int line;
 
-    public TreeNode(int id, String value, TreeNode parent) {
+    public TreeNode(int id, String value, TreeNode parent, int line) {
         this.id = id;
         this.value = value;
         this.parent = parent;
         this.children = new ArrayList<>();
         this.enter = "";
         this.exit = "";
-        
+        this.line = line;
+
         // Determina o tipo do nó
         if (value != null && value.equals("X Erro!")) {
             this.type = "error";
         } else if (value != null && value.matches("[a-zA-Z_].*")) {
-            this.type = "rule";  // Regras geralmente começam com letras
+            this.type = "rule"; // Regras geralmente começam com letras
         } else {
             this.type = "token";
         }
+    }
+
+    public int getLine() {
+        return line;
     }
 
     public void addChild(TreeNode childNode) {
@@ -46,17 +52,17 @@ public class TreeNode {
         } else {
             indent = prefix + (isLast ? "└─ " : "├─ ");
         }
-        
+
         // Colorir saída baseado no tipo
         String colored = value;
         if ("error".equals(type)) {
-            colored = "\u001B[31m" + value + "\u001B[0m";  // VERMELHO
+            colored = "\u001B[31m" + value + "\u001B[0m"; // VERMELHO
         } else if ("rule".equals(type)) {
-            colored = "\u001B[34m" + value + "\u001B[0m";  // AZUL?
+            colored = "\u001B[34m" + value + "\u001B[0m"; // AZUL?
         }
-        
+
         System.out.println(indent + colored);
-        
+
         for (int i = 0; i < children.size(); i++) {
             TreeNode child = children.get(i);
             boolean childIsLast = (i == children.size() - 1);
@@ -66,12 +72,28 @@ public class TreeNode {
     }
 
     // Getters
-    public int getId() { return id; }
-    public String getValue() { return value; }
-    public String getType() { return type; }
-    public TreeNode getParent() { return parent; }
-    public List<TreeNode> getChildren() { return children; }
-    
+    public int getId() {
+        return id;
+    }
+
+    public String getValue() {
+        return value;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public TreeNode getParent() {
+        return parent;
+    }
+
+    public List<TreeNode> getChildren() {
+        return children;
+    }
+
     // Setters
-    public void setType(String type) { this.type = type; }
+    public void setType(String type) {
+        this.type = type;
+    }
 }

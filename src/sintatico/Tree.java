@@ -11,23 +11,31 @@ public class Tree {
         this.nodeCounter = 0;
     }
 
-    public TreeNode createNode(String value, TreeNode parent) {
+    public TreeNode createNode(String value, TreeNode parent, int line) {
         this.nodeCounter++;
-        return new TreeNode(this.nodeCounter, value, parent);
+        return new TreeNode(this.nodeCounter, value, parent, line);
     }
 
+    // Manter overload sem linha para compatibilidade
     public void addRuleNode(String ruleValue) {
-        TreeNode newNode = createNode(ruleValue, this.currentNode);
-        if (this.root == null) {
+        addRuleNode(ruleValue, 0);
+    }
+
+    public void addRuleNode(String ruleValue, int line) {
+        TreeNode newNode = createNode(ruleValue, this.currentNode, line);
+        if (this.root == null)
             this.root = newNode;
-        } else {
+        else
             this.currentNode.addChild(newNode);
-        }
         this.currentNode = newNode;
     }
 
     public void addTerminalNode(String terminalValue) {
-        TreeNode newNode = createNode(terminalValue, this.currentNode);
+        addTerminalNode(terminalValue, 0);
+    }
+
+    public void addTerminalNode(String terminalValue, int line) {
+        TreeNode newNode = createNode(terminalValue, this.currentNode, line);
         this.currentNode.addChild(newNode);
     }
 
@@ -50,7 +58,15 @@ public class Tree {
     }
 
     // Getters
-    public TreeNode getRoot() { return root; }
-    public TreeNode getCurrentNode() { return currentNode; }
-    public int getNodeCounter() { return nodeCounter; }
+    public TreeNode getRoot() {
+        return root;
+    }
+
+    public TreeNode getCurrentNode() {
+        return currentNode;
+    }
+
+    public int getNodeCounter() {
+        return nodeCounter;
+    }
 }

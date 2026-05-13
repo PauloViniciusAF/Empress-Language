@@ -1,0 +1,32 @@
+@ 2. Declaração duplicada
+интеграл a := 10;
+интеграл a := 20;
+
+@ 3. Atribuição de tipo incompatível
+интеграл b := 3;
+b := "texto";
+
+@ 4. Chamada de função com argumentos errados
+функция soma(x, y) {
+    вернуть x + y;
+}
+интеграл res1 := soma(1, 2, 3);
+интеграл res2 := soma(1);
+
+@ 5. Reatribuição de nome de função
+soma := 10;
+
+@ 6. Função void usada em expressão
+функция imprimir() {
+    печать("Ola");
+}
+интеграл z := imprimir();
+
+@ 7. Variável de escopo local usada fora
+если (истинный) {
+    интеграл localVar := 42;
+}
+печать(localVar);
+
+@ 8. Chamada de função não declarada
+интеграл pre := aindaNaoDeclarada(2);

@@ -12,10 +12,10 @@ public class Parser {
     Token token;
     private BufferedWriter writer;
     private String outFilePath;
-    private String lastType = null;  // Rastreia o tipo da variável sendo declarada
-    private String[] codeLines;  // Armazena as linhas do código fonte
-    private int currentLine = 1;  // Rastreia a linha atual
-    private Tree ast;  // Árvore sintática
+    private String lastType = null; // Rastreia o tipo da variável sendo declarada
+    private String[] codeLines; // Armazena as linhas do código fonte
+    private int currentLine = 1; // Rastreia a linha atual
+    private Tree ast; // Árvore sintática
     private boolean showTree; // Controla se a AST deve ser impressa
 
     public Parser(List<Token> tokens, String inputFilePath, String sourceCode) {
@@ -30,97 +30,87 @@ public class Parser {
         this(tokens, inputFilePath, sourceCode, false, outputDir);
     }
 
-    public Parser(List<Token> tokens, String inputFilePath, String sourceCode, boolean showTree, String outputDir) {
+    public Parser(List<Token> tokens, String inputFilePath, String sourceCode, boolean showTree,
+            String outputDir) {
         this.tokens = tokens;
         this.codeLines = sourceCode.split("\n");
-        this.ast = new Tree();  // Inicializa a árvore sintática
+        this.ast = new Tree();
         this.showTree = showTree;
-        try{
+        try {
             String outName = new File(inputFilePath).getName();
-            if(outName.endsWith(".emp")){
-                outName = outName.substring(0, outName.length()-4) + ".c";
+            if (outName.endsWith(".emp")) {
+                outName = outName.substring(0, outName.length() - 4) + ".c";
             } else {
                 outName = outName + ".c";
             }
-            
-            // Define o caminho de saída
-            if(outputDir != null && !outputDir.isEmpty()) {
+
+            if (outputDir != null && !outputDir.isEmpty()) {
                 File outDirFile = new File(outputDir);
-                if(!outDirFile.exists()) {
+                if (!outDirFile.exists())
                     outDirFile.mkdirs();
-                }
                 this.outFilePath = outputDir + File.separator + outName;
             } else {
                 this.outFilePath = outName;
             }
-            
+
             File outFile = new File(outFilePath);
             this.writer = new BufferedWriter(new FileWriter(outFile));
-        } catch (IOException e){
+        } catch (IOException e) {
             System.out.println("Erro ao criar arquivo de saída: " + e.getMessage());
             this.writer = null;
         }
     }
+
     // ================= FUNÇÃO PRINCIPAL =================
-    public void main(){
+    public void main() {
         String headers = "#include <stdio.h>\n#include <stdlib.h>\n#include <stdbool.h>\n";
         String mainStart = "int main(){\n";
-        // System.out.print(headers + mainStart);  DEBUG
         write(headers);
         write(mainStart);
         token = getNextToken();
-        if(file()){
-            if(token != null && "EOF".equals(token.tipo)){
+        if (file()) {
+            if (token != null && "EOF".equals(token.tipo)) {
                 String ret = "\nreturn 0;\n}\n";
-                // System.out.print(ret);  DEBUG
                 writeLine(ret);
                 closeWriter();
-                if (showTree) {
-                    ast.printTree();  // Exibe a árvore sintática
-                }
+                if (showTree)
+                    ast.printTree();
                 return;
-            }
-            else{
+            } else {
                 erro();
             }
+        } else {
+            erro();
         }
-        erro();
         closeWriter();
     }
 
-    public Token getNextToken(){
-        if(!tokens.isEmpty()){
+    public Token getNextToken() {
+        if (!tokens.isEmpty()) {
             Token nextToken = tokens.remove(0);
-            if(nextToken != null && nextToken.linha > currentLine){
+            if (nextToken != null && nextToken.linha > currentLine) {
                 currentLine = nextToken.linha;
             }
             return nextToken;
         }
-        else{
-            return null;
-        }
+        return null;
     }
-    
-    private void erro(){
-        String errorMsg = "Erro Sintático na linha " + currentLine + ": token '" + 
-                         (token != null ? token.lexema : "EOF") + "' inesperado";
+
+    private void erro() {
+        String errorMsg = "Erro Sintático na linha " + currentLine + ": token '"
+                + (token != null ? token.lexema : "EOF") + "' inesperado";
         System.out.println(errorMsg);
-        
-        // Exibir a linha do código com o erro destacado
-        if(currentLine > 0 && currentLine <= codeLines.length){
+
+        if (currentLine > 0 && currentLine <= codeLines.length) {
             String line = codeLines[currentLine - 1];
             System.out.println(line);
-            
-            // Destacar a posição do erro
-            if(token != null && token.lexema != null){
+            if (token != null && token.lexema != null) {
                 int errorPos = line.indexOf(token.lexema);
-                if(errorPos >= 0){
-                    for(int i = 0; i < errorPos; i++){
+                if (errorPos >= 0) {
+                    for (int i = 0; i < errorPos; i++)
                         System.out.print(" ");
-                    }
-                    for(int i = 0; i < token.lexema.length(); i++){
+                    for (int i = 0; i < token.lexema.length(); i++)
                         System.out.print("^");
-                    }
                     System.out.println();
                 }
             }
@@ -128,12 +118,9 @@ public class Parser {
     }
 
     // ================================== GRAMÁTICA ==================================
-
-    // ================= ARQUIVO =================
-    // file -> bloco EOF
-    private boolean file(){
+    private boolean file() {
         ast.addRuleNode("file");
-        boolean result = bloco() && token != null && token.tipo.equals("EOF");
+        boolean result = bloco() && token != null && "EOF".equals(token.tipo);
         if (result) {
             ast.addTerminalNode("EOF");
             ast.endRuleNode();
@@ -143,11 +130,9 @@ public class Parser {
         return result;
     }
 
-    // ================= BLOCO DE CÓDIGO =================
-    // bloco -> cmd bloco | ε
-    private boolean bloco(){
+    private boolean bloco() {
         ast.addRuleNode("bloco");
-        if (cmd()){
+        if (cmd()) {
             bloco();
             ast.endRuleNode();
             return true;
@@ -156,308 +141,257 @@ public class Parser {
         return true;
     }
 
-    // ================= COMANDOS =================
-    // cmd -> cmdIf | cmdFor | cmdWhile | cmdReturn | cmdDefFunc | cmdPrint | cmdInput | cmdID | RESERVED_PASSE | RESERVED_PARE
-    private boolean cmd(){
-        if (token == null) return false;
-        
-        // Tenta executar o comando específico baseado no tipo do token
-        if (token.tipo.equals("OP_IF")) return cmdIf();
-        if (token.tipo.equals("OP_FOR")) return cmdFor();
-        if (token.tipo.equals("OP_WHILE")) return cmdWhile();
-        if (token.tipo.equals("OP_RETURN")) return cmdReturn();
-        if (token.tipo.equals("OP_FUNCTION")) return cmdDefFunc();
-        if (token.tipo.equals("OP_PRINT")) return cmdPrint();
-        if (token.tipo.equals("OP_INPUT")) return cmdInput();
-        if (token.tipo.equals("OP_CONTINUE") || token.tipo.equals("OP_BREAK")){
+    private boolean cmd() {
+        if (token == null)
+            return false;
+
+        if (token.tipo.equals("OP_IF"))
+            return cmdIf();
+        if (token.tipo.equals("OP_FOR"))
+            return cmdFor();
+        if (token.tipo.equals("OP_WHILE"))
+            return cmdWhile();
+        if (token.tipo.equals("OP_RETURN"))
+            return cmdReturn();
+        if (token.tipo.equals("OP_FUNCTION"))
+            return cmdDefFunc();
+        if (token.tipo.equals("OP_PRINT"))
+            return cmdPrint();
+        if (token.tipo.equals("OP_INPUT"))
+            return cmdInput();
+        if (token.tipo.equals("OP_CONTINUE") || token.tipo.equals("OP_BREAK")) {
             return matchT("OP_CONTINUE", "continue") || matchT("OP_BREAK", "break");
         }
-        if (tipo()) return cmdID();
-        
+
+        boolean temTipo = tipo();
+        if (temTipo || (token != null && token.tipo.equals("ID"))) {
+            return cmdID();
+        }
         return false;
     }
 
-    // ================= COMANDO ID (ATRIBUIÇÃO) =================
-    // cmdID -> tipo ID acessoListaOp complemento ; | ID acessoListaOp complemento ;
-    private boolean cmdID(){
+    private boolean cmdID() {
         ast.addRuleNode("cmdID");
-        // Tenta declaração com tipo
-        if (id() && acessoListaOp() && complemento()){
-            lastType = null;  // Reseta o tipo após usar
+        if (lastType != null) {
+            ast.addTerminalNode(lastType, currentLine);
+        }
+        if (id() && acessoListaOp() && complemento()) {
+            lastType = null;
             if (matchT("SEMICOLON", ";")) {
                 ast.endRuleNode();
                 return true;
             }
         }
-        lastType = null;  // Reseta o tipo em caso de erro
+        lastType = null;
         ast.endRuleNode();
         return false;
     }
 
-    // ================= ACESSO LISTA OPERADOR =================
-    // acessoListaOp -> acessoLista acessoListaOp | ε
-    private boolean acessoListaOp(){
-        if (matchT("OPEN_BRACKETS", "[")){
+    private boolean acessoListaOp() {
+        if (matchT("OPEN_BRACKETS", "[")) {
             return acessoLista() && acessoListaOp();
         }
         return true;
     }
 
-    // ================= ACESSO LISTA =================
-    // acessoLista -> OPEN_BRACKET expressaoAritmetica CLOSE_BRACKET
-    private boolean acessoLista(){
-        if (matchT("OPEN_BRACKETS", "[") && expressaoAritmetica() && matchT("CLOSE_BRACKETS", "]")){
+    private boolean acessoLista() {
+        if (matchT("OPEN_BRACKETS", "[") && expressaoAritmetica()
+                && matchT("CLOSE_BRACKETS", "]")) {
             return true;
         }
         return false;
     }
 
-    // ================= COMPLEMENTO =================
-    // complemento -> atribComum | atribComOp | chamadaFuncao | ε
-    private boolean complemento(){
-        if (matchT("ASSIGN", "=")){
+    private boolean complemento() {
+        if (matchT("ASSIGN", "="))
             return valor();
-        }
-        if (operadorAssignOp()){
+        if (operadorAssignOp())
             return valor();
-        }
-        if (matchT("OPEN_PARENTHESIS", "(")){
-            boolean result = corpoLista() && matchT("CLOSE_PARENTHESIS", ")");
-            return result;
-        }
+        if (matchT("OPEN_PARENTHESIS", "("))
+            return corpoLista() && matchT("CLOSE_PARENTHESIS", ")");
+
+        // Suporte a incremento/decremento pós-fixado: var++; ou var--;
+        if (matchT("INCREMENT", "++") || matchT("DECREMENT", "--"))
+            return true;
+
         return true;
     }
 
-    // ================= OPERADOR DE ATRIBUIÇÃO =================
-    // assignOp -> += | -= | *= | /= | %= | ^=
-    private boolean operadorAssignOp(){
-        if (matchT("PLUS_ASSIGN", "+=") ||
-            matchT("MINUS_ASSIGN", "-=") ||
-            matchT("TIMES_ASSIGN", "*=") ||
-            matchT("DIV_ASSIGN", "/=") ||
-            matchT("MOD_ASSIGN", "%=") ||
-            matchT("POW_ASSIGN", "^=")){
+    private boolean operadorAssignOp() {
+        if (matchT("PLUS_ASSIGN", "+=") || matchT("MINUS_ASSIGN", "-=")
+                || matchT("TIMES_ASSIGN", "*=") || matchT("DIV_ASSIGN", "/=")
+                || matchT("MOD_ASSIGN", "%=") || matchT("POW_ASSIGN", "^=")) {
             return true;
         }
         return false;
     }
 
-    // ================= VALOR =================
-    // valor -> expressaoLogica | lista | cmdPrint | cmdInput
-    private boolean valor(){
-        if (matchT("OPEN_BRACKETS", "[")){
+    private boolean valor() {
+        if (matchT("OPEN_BRACKETS", "["))
             return lista();
-        }
-        if (token.tipo.equals("OP_PRINT")){
+        if (token != null && token.tipo.equals("OP_PRINT"))
             return cmdPrint();
-        }
-        if (token.tipo.equals("OP_INPUT")){
+        if (token != null && token.tipo.equals("OP_INPUT"))
             return cmdInput();
-        }
         return expressaoLogica();
     }
 
-    // ================= EXPRESSÃO LÓGICA =================
-    // expressaoLogica -> expressaoRelacional (AND|OR expressaoRelacional)*
-    private boolean expressaoLogica(){   
-        if (!expressaoRelacional()){
+    private boolean expressaoLogica() {
+        if (!expressaoRelacional())
             return false;
-        }
-        while (matchT("AND", "&&") || matchT("OR", "||")){
-            if (!expressaoRelacional()){
+        while (matchT("AND", "&&") || matchT("OR", "||")) {
+            if (!expressaoRelacional())
                 return false;
-            }
         }
         return true;
     }
 
-    // ================= EXPRESSÃO RELACIONAL =================
-    // expressaoRelacional -> expressaoAritmetica (opRelacional expressaoAritmetica)*
-    private boolean expressaoRelacional(){   
-        if (!expressaoAritmetica()){
+    private boolean expressaoRelacional() {
+        if (!expressaoAritmetica())
             return false;
-        }
-        while (op_comparacao()){
-            if (!expressaoAritmetica()){
+        while (op_comparacao()) {
+            if (!expressaoAritmetica())
                 return false;
-            }
         }
         return true;
     }
 
-    // ================= OPERADOR DE COMPARAÇÃO =================
-    private boolean op_comparacao(){
-        if (matchT("GREATER", ">") || 
-            matchT("LESS", "<") ||     
-            matchT("EQUAL", "==") ||
-            matchT("DIFFERENT", "!=") ||
-            matchT("GREATER_EQUAL", ">=") ||
-            matchT("LESS_EQUAL", "<=")){
+    private boolean op_comparacao() {
+        if (matchT("GREATER", ">") || matchT("LESS", "<") || matchT("EQUAL", "==")
+                || matchT("DIFFERENT", "!=") || matchT("GREATER_EQUAL", ">=")
+                || matchT("LESS_EQUAL", "<=")) {
             return true;
         }
         return false;
     }
 
-    // ================= EXPRESSÃO ARITMÉTICA =================
-    // expressaoAritmetica -> termo (opAd termo)*
-    private boolean expressaoAritmetica(){   
-        if (!termo()){
+    private boolean expressaoAritmetica() {
+        if (!termo())
             return false;
-        }
-        while (op_adicao()){
-            if (!termo()){
+        while (op_adicao()) {
+            if (!termo())
                 return false;
-            }
         }
         return true;
     }
 
-    // ================= OPERADOR DE ADIÇÃO =================
-    private boolean op_adicao(){
-        if (matchT("PLUS", "+") || 
-            matchT("MINUS", "-")){
+    private boolean op_adicao() {
+        if (matchT("PLUS", "+") || matchT("MINUS", "-"))
             return true;
-        }
         return false;
     }
 
-    // ================= TERMO =================
-    // termo -> fator (opMul fator)*
-    private boolean termo(){   
-        if (!fator()){
+    private boolean termo() {
+        if (!fator())
             return false;
-        }
-        while (op_mult()){
-            if (!fator()){
+        while (op_mult()) {
+            if (!fator())
                 return false;
-            }
         }
         return true;
     }
 
-    // ================= OPERADOR DE MULTIPLICAÇÃO =================
-    private boolean op_mult(){
-        if (matchT("TIMES", "*") || 
-            matchT("DIV", "/") ||
-            matchT("MOD", "%")){
+    private boolean op_mult() {
+        if (matchT("TIMES", "*") || matchT("DIV", "/") || matchT("MOD", "%"))
             return true;
-        }
         return false;
     }
 
-    // ================= FATOR =================
-    // fator -> elemento (POW elemento)*
-    private boolean fator(){   
-        if (!elemento()){
+    private boolean fator() {
+        if (!elemento())
             return false;
-        }
-        while (matchT("POW", "^")){
-            if (!elemento()){
+        while (matchT("POW", "^")) {
+            if (!elemento())
                 return false;
-            }
         }
         return true;
     }
 
-    // ================= ELEMENTO =================
-    // elemento -> (INCREMENT | DECREMENT) ID | ID X | NUM | STRING | BOOL | (expressaoLogica)
-    private boolean elemento(){
-        if (matchT("INCREMENT", "++") || matchT("DECREMENT", "--")){
-            if (id()){
+    private boolean elemento() {
+        if (matchT("INCREMENT", "++") || matchT("DECREMENT", "--")) {
+            if (id())
                 return X();
-            }
             return false;
         }
-        if (id()){
+        if (id())
             return X();
-        }
-        if (matchT("INT", token.lexema) || 
-            matchT("FLOAT", token.lexema)){
+
+        if (token != null && token.tipo.equals("INT")) {
+            String lex = token.lexema;
+            matchT("INT", lex);
+            ast.addTerminalNode(lex);
             return true;
         }
-        // Adiciona aspas
-        if (token.tipo.equals("STR")){
-            matchT("STR", "\"" + token.lexema + "\"");
+        if (token != null && token.tipo.equals("FLOAT")) {
+            String lex = token.lexema;
+            matchT("FLOAT", lex);
+            ast.addTerminalNode(lex);
             return true;
         }
-        if (matchT("BOOL", token.lexema)){
+        if (token != null && token.tipo.equals("STR")) {
+            String lex = token.lexema;
+            matchT("STR", "\"" + lex + "\"");
+            ast.addTerminalNode("\"" + lex + "\"");
             return true;
         }
-        if (matchT("OPEN_PARENTHESIS", "(")){
+        if (token != null && token.tipo.equals("BOOL")) {
+            String lex = token.lexema;
+            matchT("BOOL", lex);
+            ast.addTerminalNode(lex);
+            return true;
+        }
+        if (matchT("OPEN_PARENTHESIS", "(")) {
             return expressaoLogica() && matchT("CLOSE_PARENTHESIS", ")");
         }
         return false;
     }
 
-    // ================= X (COMPOSIÇÃO) =================
-    // X -> composicao X | (INCREMENT | DECREMENT) | ε
-    private boolean X(){
-        // Pós-fixos (var++, var--)
-        if (matchT("INCREMENT", "++") || matchT("DECREMENT", "--")){
+    private boolean X() {
+        if (matchT("INCREMENT", "++") || matchT("DECREMENT", "--"))
             return true;
-        }
-        // Composição (acesso a arrays ou chamada de função)
-        if (matchT("OPEN_BRACKETS", "[") || matchT("OPEN_PARENTHESIS", "(")){
+        if (matchT("OPEN_BRACKETS", "[") || matchT("OPEN_PARENTHESIS", "(")) {
             return composicao() && X();
         }
         return true;
     }
 
-    // ================= COMPOSIÇÃO =================
-    // composicao -> acessoLista acessoListaOp | chamadaFuncao
-    private boolean composicao(){
-        if (matchT("OPEN_BRACKETS", "[")){
+    private boolean composicao() {
+        if (matchT("OPEN_BRACKETS", "[")) {
             return expressaoAritmetica() && matchT("CLOSE_BRACKETS", "]") && acessoListaOp();
         }
-        if (matchT("OPEN_PARENTHESIS", "(")){
+        if (matchT("OPEN_PARENTHESIS", "(")) {
             return corpoLista() && matchT("CLOSE_PARENTHESIS", ")");
         }
         return false;
     }
 
-    // ================= CORPO DA LISTA =================
-    // corpoLista -> valor entradaLista | ε
-    private boolean corpoLista(){
-        if (token.tipo.equals("CLOSE_BRACKETS") || token.tipo.equals("CLOSE_PARENTHESIS")){
+    private boolean corpoLista() {
+        if (token != null && (token.tipo.equals("CLOSE_BRACKETS")
+                || token.tipo.equals("CLOSE_PARENTHESIS"))) {
             return true;
         }
-        if (valor()){
+        if (valor())
             return entradaLista();
-        }
         return true;
     }
 
-    // ================= ENTRADA LISTA =================
-    // entradaLista -> COMMA valor entradaLista | ε
-    private boolean entradaLista(){
-        if (matchT("COMMA", ",")){
+    private boolean entradaLista() {
+        if (matchT("COMMA", ","))
             return valor() && entradaLista();
-        }
         return true;
     }
 
-    // ================= LISTA =================
-    // lista -> [ corpoLista ]
-    private boolean lista(){
-        if (matchT("OPEN_BRACKETS", "[")){
-            boolean result = corpoLista() && matchT("CLOSE_BRACKETS", "]");
-            return result;
+    private boolean lista() {
+        if (matchT("OPEN_BRACKETS", "[")) {
+            return corpoLista() && matchT("CLOSE_BRACKETS", "]");
         }
         return false;
     }
 
-    // ================= CONDIÇÃO IF =================
-    // cmdIf -> IF valor THEN INDENT bloco DEDENT cmdElse
-    private boolean cmdIf(){
+    private boolean cmdIf() {
         ast.addRuleNode("cmdIf");
-        if (matchT("OP_IF", "if") &&                        
-            valor() &&                                                   
-            matchT("OPEN_BRACES", "{") &&                   
-            bloco() &&                                                       
-            matchT("CLOSE_BRACES", "}") &&                  
-            cmdElse()
-            )
-        {
+        if (matchT("OP_IF", "if") && valor() && matchT("OPEN_BRACES", "{") && bloco()
+                && matchT("CLOSE_BRACES", "}") && cmdElse()) {
             ast.endRuleNode();
             return true;
         }
@@ -465,31 +399,18 @@ public class Parser {
         return false;
     }
 
-    // ================= CONDIÇÃO ELSE =================
-    // cmdElse -> ELSE INDENT bloco DEDENT | ε
-    private boolean cmdElse(){
-        if (matchT("OP_ELSE", "else") &&                    
-            matchT("OPEN_BRACES", "{") &&                  
-            bloco() &&                                                       
-            matchT("CLOSE_BRACES", "}")                    
-            )
-        {
+    private boolean cmdElse() {
+        if (matchT("OP_ELSE", "else") && matchT("OPEN_BRACES", "{") && bloco()
+                && matchT("CLOSE_BRACES", "}")) {
             return true;
         }
         return true;
     }
 
-    // ================= LAÇO WHILE =================
-    // cmdWhile -> WHILE valor INDENT bloco DEDENT
-    private boolean cmdWhile(){
+    private boolean cmdWhile() {
         ast.addRuleNode("cmdWhile");
-        if (matchT("OP_WHILE", "while") &&                  
-            valor() &&                                                    
-            matchT("OPEN_BRACES", "{") &&                   
-            bloco() &&                                                       
-            matchT("CLOSE_BRACES", "}")                     
-            )
-        {
+        if (matchT("OP_WHILE", "while") && valor() && matchT("OPEN_BRACES", "{") && bloco()
+                && matchT("CLOSE_BRACES", "}")) {
             ast.endRuleNode();
             return true;
         }
@@ -497,22 +418,12 @@ public class Parser {
         return false;
     }
 
-    // ================= LOOP FOR =================
-    // cmdFor -> FOR ( variavelFor ; expressaoRelacional ; expressaoAritmetica ) { bloco }
-    private boolean cmdFor(){
+    private boolean cmdFor() {
         ast.addRuleNode("cmdFor");
-        if (matchT("OP_FOR", "for") &&                                                              
-            matchT("OPEN_PARENTHESIS", "(") &&
-            variavelFor() &&
-            matchT("SEMICOLON", ";") &&
-            expressaoRelacional() &&
-            matchT("SEMICOLON", ";") &&
-            expressaoAritmetica() &&
-            matchT("CLOSE_PARENTHESIS", ")") &&
-            matchT("OPEN_BRACES", "{") &&
-            bloco() &&
-            matchT("CLOSE_BRACES", "}"))
-        {
+        if (matchT("OP_FOR", "for") && matchT("OPEN_PARENTHESIS", "(") && variavelFor()
+                && matchT("SEMICOLON", ";") && expressaoRelacional() && matchT("SEMICOLON", ";")
+                && expressaoAritmetica() && matchT("CLOSE_PARENTHESIS", ")")
+                && matchT("OPEN_BRACES", "{") && bloco() && matchT("CLOSE_BRACES", "}")) {
             ast.endRuleNode();
             return true;
         }
@@ -520,38 +431,25 @@ public class Parser {
         return false;
     }
 
-    // ================= VARIÁVEL FOR =================
-    // variavelFor -> tipo ID complemento | ID complemento
-    private boolean variavelFor(){
-        // Tenta declaração com tipo
-        if (tipo()){
-            if (id() && complemento()){
-                lastType = null;  // Reseta o tipo após usar
+    private boolean variavelFor() {
+        if (tipo()) {
+            if (id() && complemento()) {
+                lastType = null;
                 return true;
             }
-            lastType = null;  // Reseta o tipo em caso de erro
+            lastType = null;
             return false;
         }
-        // Tenta apenas atribuição
-        if (id() && complemento()){
+        if (id() && complemento())
             return true;
-        }
         return false;
     }
 
-    // ================= FUNÇÃO =================
-    // cmdDefFunc -> FUNCTION ID ( listaParametros ) { bloco }
-    private boolean cmdDefFunc(){
+    private boolean cmdDefFunc() {
         ast.addRuleNode("cmdDefFunc");
-        if (matchT("OP_FUNCTION", "void ") &&                                                                       
-            id() &&
-            matchT("OPEN_PARENTHESIS", "(") &&
-            listaParametros() &&
-            matchT("CLOSE_PARENTHESIS", ")") &&
-            matchT("OPEN_BRACES", "{") &&
-            bloco() &&
-            matchT("CLOSE_BRACES", "}"))
-        {
+        if (matchT("OP_FUNCTION", "void") && id() && matchT("OPEN_PARENTHESIS", "(")
+                && listaParametros() && matchT("CLOSE_PARENTHESIS", ")")
+                && matchT("OPEN_BRACES", "{") && bloco() && matchT("CLOSE_BRACES", "}")) {
             ast.endRuleNode();
             return true;
         }
@@ -559,29 +457,21 @@ public class Parser {
         return false;
     }
 
-    // ================= LISTA DE PARÂMETROS =================
-    // listaParametros -> ID entradaListaParam | ε
-    private boolean listaParametros(){
-        if (id()){
+    private boolean listaParametros() {
+        if (id())
             return entradaListaParam();
-        }
         return true;
     }
 
-    // ================= ENTRADA LISTA PARÂMETROS =================
-    // entradaListaParam -> COMMA ID entradaListaParam | ε
-    private boolean entradaListaParam(){
-        if (matchT("COMMA", ",")){
+    private boolean entradaListaParam() {
+        if (matchT("COMMA", ","))
             return id() && entradaListaParam();
-        }
         return true;
     }
 
-    // ================= RETORNO =================
-    // cmdReturn -> RETURN valorRetorno
-    private boolean cmdReturn(){
+    private boolean cmdReturn() {
         ast.addRuleNode("cmdReturn");
-        if (matchT("OP_RETURN", "return")){
+        if (matchT("OP_RETURN", "return")) {
             valorRetorno();
             ast.endRuleNode();
             return true;
@@ -590,25 +480,18 @@ public class Parser {
         return false;
     }
 
-    // ================= VALOR RETORNO =================
-    // valorRetorno -> valor | ε
-    private boolean valorRetorno(){
-        if (token.tipo.equals("EOF") || token.tipo.equals("CLOSE_BRACES") || 
-            token.tipo.equals("OP_CONTINUE") || token.tipo.equals("OP_BREAK")){
+    private boolean valorRetorno() {
+        if (token == null || token.tipo.equals("EOF") || token.tipo.equals("CLOSE_BRACES")
+                || token.tipo.equals("OP_CONTINUE") || token.tipo.equals("OP_BREAK")) {
             return true;
         }
         return valor();
     }
 
-    // ================= PRINT =================
-    // cmdPrint -> PRINT ( corpoLista )
-    private boolean cmdPrint(){
+    private boolean cmdPrint() {
         ast.addRuleNode("cmdPrint");
-        if (matchT("OP_PRINT", "printf") && 
-            matchT("OPEN_PARENTHESIS", "(") &&
-            corpoLista() &&
-            matchT("CLOSE_PARENTHESIS", ")") &&
-            matchT("SEMICOLON", ";")){
+        if (matchT("OP_PRINT", "printf") && matchT("OPEN_PARENTHESIS", "(") && corpoLista()
+                && matchT("CLOSE_PARENTHESIS", ")") && matchT("SEMICOLON", ";")) {
             ast.endRuleNode();
             return true;
         }
@@ -616,15 +499,10 @@ public class Parser {
         return false;
     }
 
-    // ================= INPUT =================
-    // cmdInput -> INPUT ( corpoLista )
-    private boolean cmdInput(){
+    private boolean cmdInput() {
         ast.addRuleNode("cmdInput");
-        if (matchT("OP_INPUT", "scanf") && 
-            matchT("OPEN_PARENTHESIS", "(") &&
-            corpoLista() &&
-            matchT("CLOSE_PARENTHESIS", ")") &&
-            matchT("SEMICOLON", ";")){
+        if (matchT("OP_INPUT", "scanf") && matchT("OPEN_PARENTHESIS", "(") && corpoLista()
+                && matchT("CLOSE_PARENTHESIS", ")") && matchT("SEMICOLON", ";")) {
             ast.endRuleNode();
             return true;
         }
@@ -632,111 +510,87 @@ public class Parser {
         return false;
     }
 
-
-    // ================= TIPO DA VARIÁVEL =================
-    private boolean tipo(){
-        if (matchT("INT_TYPE", "int ")){
-            ast.addTerminalNode("int");
+    private boolean tipo() {
+        if (matchT("INT_TYPE", "int")) {
             lastType = "int";
             return true;
         }
-        if (matchT("FLOAT_TYPE", "float ")){
-            ast.addTerminalNode("float");
+        if (matchT("FLOAT_TYPE", "float")) {
             lastType = "float";
             return true;
         }
-        if (matchT("BOOL_TYPE", "bool ")){
-            ast.addTerminalNode("bool");
+        if (matchT("BOOL_TYPE", "bool")) {
             lastType = "bool";
             return true;
         }
-        if (matchT("STR_TYPE", "char* ")){
-            ast.addTerminalNode("char*");
-            lastType = "string";
+        if (matchT("STR_TYPE", "char*")) {
+            lastType = "char*";
             return true;
         }
         return false;
     }
 
-    // ================= ID =================
-    private boolean id(){
-        if (matchT("ID", token.lexema)){
+    private boolean id() {
+        if (token != null && token.tipo.equals("ID")) {
+            String lexema = token.lexema;
+            matchT("ID", lexema);
             return true;
         }
         return false;
     }
 
-    // ================= ESCRITA NO ARQUIVO EM .c =================
-    private void traduz(String code){
-        //System.out.print(code); DEBUG
+    // ================= ESCRITA E MATCH =================
+    private void traduz(String code) {
         write(code);
     }
 
-    private void write(String code){
-        if(this.writer == null) return;
-        try{
+    private void write(String code) {
+        if (this.writer == null)
+            return;
+        try {
             this.writer.write(code);
-        } catch (IOException e){
-            System.out.println("Erro ao escrever no arquivo: " + e.getMessage());
+        } catch (IOException e) {
+            System.out.println("Erro ao escrever: " + e.getMessage());
         }
     }
 
-    private void writeLine(String code){
+    private void writeLine(String code) {
         write(code);
     }
 
-    private void closeWriter(){
-        if(this.writer == null) return;
-        try{
+    private void closeWriter() {
+        if (this.writer == null)
+            return;
+        try {
             this.writer.close();
-        } catch (IOException e){
-            System.out.println("Erro ao fechar o arquivo: " + e.getMessage());
+        } catch (IOException e) {
+            System.out.println("Erro ao fechar: " + e.getMessage());
         }
     }
 
-    // ================= LEITURA DE TOKENS =================
-
-    // Pegar Lexema do token
-    private boolean matchL(String palavra){
-        if(token.lexema.equals(palavra)){
-            token = getNextToken();
-            return true;
-        }
-        return false;
-    }
-
-    // E colocar algo no arquivo .c 
-    private boolean matchL(String palavra, String newcode){
-        if(token.lexema.equals(palavra)){
-            traduz(newcode);
-            token = getNextToken();
-            return true;
-        }
-        return false;
-    }
-
-    // Pegar tipo do token
-    private boolean matchT(String palavra){
-        if (token != null && token.tipo.equals(palavra)){
-            if(token.linha > currentLine){
+    private boolean matchT(String palavra) {
+        if (token != null && token.tipo.equals(palavra)) {
+            if (token.linha > currentLine)
                 currentLine = token.linha;
-            }
             token = getNextToken();
             return true;
         }
         return false;
     }
 
-    // E colocar algo no arquivo .c
-    private boolean matchT(String palavra, String newcode){
-        if(token != null && token.tipo.equals(palavra)){
-            if(token.linha > currentLine){
+    private boolean matchT(String palavra, String newcode) {
+        if (token != null && token.tipo.equals(palavra)) {
+            if (token.linha > currentLine)
                 currentLine = token.linha;
-            }
             traduz(newcode);
+            ast.addTerminalNode(newcode, currentLine);
             token = getNextToken();
             return true;
         }
         return false;
+    }
+
+    public Tree getAst() {
+        return ast;
     }
 }
