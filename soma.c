@@ -3,8 +3,8 @@
 #include <stdbool.h>
 
 int main() {
-for(int i = 0; i < 5; i++) {
-printf("%d", i);
-}
+int numero = 25;
+int numerob = 25;
+printf("%d", numero + numerob);
     return 0;
 }

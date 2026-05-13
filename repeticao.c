@@ -2,13 +2,10 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-void funcao() {
+int main() {
 int numeroRep = 1;
 while(numeroRep < 10) {
 printf("%d", numeroRep);
 numeroRep++;
-}}
-
-int main() {
-    return 0;
+}    return 0;
 }

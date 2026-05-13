@@ -1,0 +1,5 @@
+интеграл numero := 25;
+
+интеграл numerob := 25;
+
+печать(numero + numerob);

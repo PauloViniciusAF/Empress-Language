@@ -1,0 +1,18 @@
+интеграл numero := 25;
+
+если (numero < 10) {
+    печать("Numero esta na faixa de 0 a 9");
+}
+иначе {
+    если (numero < 20) {
+        печать ("Numero esta na faixa de 10 a 19");
+    }
+    иначе {
+        если (numero < 30) {
+            печать("Numero esta na faixa de 20 a 29");
+        }
+        иначе {
+            печать("Numero eh maior ou igual a 30");
+        }
+    }
+}

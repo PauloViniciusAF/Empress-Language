@@ -4,3 +4,5 @@
         печать("Numero %d", inteiro);
     }
 }
+
+funcao();

@@ -77,6 +77,15 @@ public class Parser {
         }
     }
 
+    // Escreve um operador respeitando o printfArgBuffer quando ativo
+    private void writeOp(String op) {
+        if (printfArgBuffer != null) {
+            printfArgBuffer.append(" ").append(op).append(" ");
+        } else {
+            write(" " + op + " ");
+        }
+    }
+
     private void writeLine(String code) {
         write(code + "\n");
     }
@@ -282,7 +291,8 @@ public class Parser {
         if (operadorAssignOp()) {
             return valor();
         }
-        if (matchT("OPEN_PARENTHESIS", "(")) {
+        if (matchT("OPEN_PARENTHESIS", "")) {
+            ast.addTerminalNode("(", currentLine);
             write("(");
             boolean ok = corpoLista() && matchT("CLOSE_PARENTHESIS", "");
             write(")");
@@ -324,7 +334,7 @@ public class Parser {
                 currentLine = token.linha;
             ast.addTerminalNode(op, currentLine);
             token = getNextToken();
-            write(" " + op + " ");
+            writeOp(op);
             if (!expressaoRelacional())
                 return false;
         }
@@ -342,15 +352,15 @@ public class Parser {
     }
 
     private boolean op_comparacao() {
-        String[] types = {"GREATER", "LESS", "EQUAL", "DIFFERENT", "GREATER_EQUAL", "LESS_EQUAL"};
-        String[] ops = {">", "<", "==", "!=", ">=", "<="};
+        String[] types = { "GREATER", "LESS", "EQUAL", "DIFFERENT", "GREATER_EQUAL", "LESS_EQUAL" };
+        String[] ops = { ">", "<", "==", "!=", ">=", "<=" };
         for (int i = 0; i < types.length; i++) {
             if (token != null && token.tipo.equals(types[i])) {
                 if (token.linha > currentLine)
                     currentLine = token.linha;
                 ast.addTerminalNode(ops[i], currentLine);
                 token = getNextToken();
-                write(" " + ops[i] + " ");
+                writeOp(ops[i]);
                 return true;
             }
         }
@@ -374,21 +384,20 @@ public class Parser {
                 currentLine = token.linha;
             ast.addTerminalNode(op, currentLine);
             token = getNextToken();
-            write(" " + op + " ");
+            writeOp(op);
             return true;
         }
         return false;
     }
 
     private boolean op_mult() {
-        if (token != null && (token.tipo.equals("TIMES") || token.tipo.equals("DIV")
-                || token.tipo.equals("MOD"))) {
+        if (token != null && (token.tipo.equals("TIMES") || token.tipo.equals("DIV") || token.tipo.equals("MOD"))) {
             String op = token.tipo.equals("TIMES") ? "*" : token.tipo.equals("DIV") ? "/" : "%";
             if (token.linha > currentLine)
                 currentLine = token.linha;
             ast.addTerminalNode(op, currentLine);
             token = getNextToken();
-            write(" " + op + " ");
+            writeOp(op);
             return true;
         }
         return false;
@@ -570,8 +579,7 @@ public class Parser {
                             return false;
                         if (matchT("CLOSE_PARENTHESIS", "")) {
                             write(") {\n");
-                            if (matchT("OPEN_BRACES", "") && bloco()
-                                    && matchT("CLOSE_BRACES", "")) {
+                            if (matchT("OPEN_BRACES", "") && bloco() && matchT("CLOSE_BRACES", "")) {
                                 write("}\n");
                                 ast.endRuleNode();
                                 return true;
@@ -616,6 +624,7 @@ public class Parser {
         ast.addRuleNode("cmdDefFunc");
         insideFunction = true;
         if (matchT("OP_FUNCTION", "")) {
+            ast.addTerminalNode("void", currentLine);
             write("void ");
             if (id()) {
                 write("(");
@@ -776,8 +785,7 @@ public class Parser {
                 if (!newcode.isEmpty()) {
                     if (printfArgBuffer.length() > 0) {
                         char last = printfArgBuffer.charAt(printfArgBuffer.length() - 1);
-                        if (last != ' ' && last != '(' && !newcode.equals(")")
-                                && !newcode.equals(","))
+                        if (last != ' ' && last != '(' && !newcode.equals(")") && !newcode.equals(","))
                             printfArgBuffer.append(" ");
                     }
                     printfArgBuffer.append(newcode);
@@ -788,9 +796,8 @@ public class Parser {
                     char last = lastBuff.charAt(lastBuff.length() - 1);
                     // Add a space only between two word-like tokens
                     boolean lastIsWord = Character.isLetterOrDigit(last) || last == '_';
-                    boolean nextIsWord =
-                            newcode.length() > 0 && (Character.isLetterOrDigit(newcode.charAt(0))
-                                    || newcode.charAt(0) == '_');
+                    boolean nextIsWord = newcode.length() > 0 &&
+                            (Character.isLetterOrDigit(newcode.charAt(0)) || newcode.charAt(0) == '_');
                     if (lastIsWord && nextIsWord)
                         write(" ");
                 }

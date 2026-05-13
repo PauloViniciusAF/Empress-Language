@@ -42,3 +42,6 @@ cd "$SCRIPT_DIR"
 
 # Passa todos os argumentos para o Java
 java -cp "$BUILD_DIR" Main "$@"
+
+
+
