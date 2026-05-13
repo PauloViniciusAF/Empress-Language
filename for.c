@@ -1,7 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-int main(){
-voidteste(){for(inti=0;i<5;i++){printf(i);}}
-return 0;
+
+void teste() {
+for(int i = 0; i < 5; i++) {
+printf("%d", i);
+}
+}
+
+int main() {
+    return 0;
 }

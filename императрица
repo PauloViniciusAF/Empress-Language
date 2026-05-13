@@ -40,9 +40,5 @@ fi
 # Executa o programa com o arquivo como argumento
 cd "$SCRIPT_DIR"
 
-# Verifica se o argumento --tree foi passado
-if [ "$2" = "--tree" ]; then
-    java -cp "$BUILD_DIR" Main "$1" --tree
-else
-    java -cp "$BUILD_DIR" Main "$1"
-fi
+# Passa todos os argumentos para o Java
+java -cp "$BUILD_DIR" Main "$@"

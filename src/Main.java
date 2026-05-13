@@ -16,11 +16,14 @@ public class Main {
         List<Token> tokens = null;
         String sourceCode = null;
         boolean showTree = false;
+        boolean showTokens = false;
         String fileName = null;
 
         for (String arg : args) {
             if (arg.equals("--tree")) {
                 showTree = true;
+            } else if (arg.equals("--token")) {
+                showTokens = true;
             } else if (fileName == null) {
                 fileName = arg;
             }
@@ -50,12 +53,14 @@ public class Main {
             e.printStackTrace();
         }
 
-        System.out.println("\n========== DEBUG TOKENS ==========");
-        for (Token t : tokens) {
-            // Usa repr() para visualizar espaços invisíveis
-            System.out.printf("Linha %2d | Tipo: %-15s | Lexema: %s%n", t.linha, t.tipo, t.lexema);
+        if (showTokens) {
+            System.out.println("========== DEBUG TOKENS ==========");
+            for (Token t : tokens) {
+                System.out.printf("Linha %2d | Tipo: %-15s | Lexema: %s%n", t.linha, t.tipo,
+                        t.lexema);
+            }
+            System.out.println("==================================\n");
         }
-        System.out.println("==================================\n");
 
         // ── Análise Sintática ──────────────────────────────────────────────
         Parser parser = new Parser(tokens, myFile.getName(), sourceCode, showTree);
@@ -67,7 +72,7 @@ public class Main {
             semantic.analyze(parser.getAst().getRoot());
             System.out.println("Análise semântica: OK");
         } catch (SemanticException e) {
-            System.err.println(e.getMessage());
+            System.out.println(e.getMessage());
             System.exit(1);
         }
     }

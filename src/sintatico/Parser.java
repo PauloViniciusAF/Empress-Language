@@ -4,6 +4,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import lexer.Token;
 
@@ -12,11 +13,19 @@ public class Parser {
     Token token;
     private BufferedWriter writer;
     private String outFilePath;
-    private String lastType = null; // Rastreia o tipo da variável sendo declarada
-    private String[] codeLines; // Armazena as linhas do código fonte
-    private int currentLine = 1; // Rastreia a linha atual
-    private Tree ast; // Árvore sintática
-    private boolean showTree; // Controla se a AST deve ser impressa
+    private String lastType = null;
+    private String[] codeLines;
+    private int currentLine = 1;
+    private Tree ast;
+    private boolean showTree;
+
+    // Buffers para gerar o código separadamente
+    private StringBuilder globalCode = new StringBuilder(); // funções
+    private StringBuilder mainCode = new StringBuilder(); // dentro da main
+    private boolean insideFunction = false;
+
+    // Buffer temporário para capturar o argumento do printf
+    private StringBuilder printfArgBuffer = null;
 
     public Parser(List<Token> tokens, String inputFilePath, String sourceCode) {
         this(tokens, inputFilePath, sourceCode, false, null);
@@ -43,7 +52,6 @@ public class Parser {
             } else {
                 outName = outName + ".c";
             }
-
             if (outputDir != null && !outputDir.isEmpty()) {
                 File outDirFile = new File(outputDir);
                 if (!outDirFile.exists())
@@ -52,7 +60,6 @@ public class Parser {
             } else {
                 this.outFilePath = outName;
             }
-
             File outFile = new File(outFilePath);
             this.writer = new BufferedWriter(new FileWriter(outFile));
         } catch (IOException e) {
@@ -61,18 +68,44 @@ public class Parser {
         }
     }
 
-    // ================= FUNÇÃO PRINCIPAL =================
+    // Escrita nos buffers apropriados
+    private void write(String code) {
+        if (insideFunction) {
+            globalCode.append(code);
+        } else {
+            mainCode.append(code);
+        }
+    }
+
+    private void writeLine(String code) {
+        write(code + "\n");
+    }
+
+    private void flushToFile() throws IOException {
+        if (writer == null)
+            return;
+        // Cabeçalhos
+        writer.write("#include <stdio.h>\n");
+        writer.write("#include <stdlib.h>\n");
+        writer.write("#include <stdbool.h>\n\n");
+        // Código global (funções)
+        writer.write(globalCode.toString());
+        // Função main
+        writer.write("int main() {\n");
+        writer.write(mainCode.toString());
+        writer.write("    return 0;\n}\n");
+        writer.close();
+    }
+
     public void main() {
-        String headers = "#include <stdio.h>\n#include <stdlib.h>\n#include <stdbool.h>\n";
-        String mainStart = "int main(){\n";
-        write(headers);
-        write(mainStart);
         token = getNextToken();
         if (file()) {
             if (token != null && "EOF".equals(token.tipo)) {
-                String ret = "\nreturn 0;\n}\n";
-                writeLine(ret);
-                closeWriter();
+                try {
+                    flushToFile();
+                } catch (IOException e) {
+                    System.out.println("Erro ao escrever arquivo: " + e.getMessage());
+                }
                 if (showTree)
                     ast.printTree();
                 return;
@@ -82,7 +115,11 @@ public class Parser {
         } else {
             erro();
         }
-        closeWriter();
+        try {
+            if (writer != null)
+                writer.close();
+        } catch (IOException e) {
+        }
     }
 
     public Token getNextToken() {
@@ -100,7 +137,6 @@ public class Parser {
         String errorMsg = "Erro Sintático na linha " + currentLine + ": token '"
                 + (token != null ? token.lexema : "EOF") + "' inesperado";
         System.out.println(errorMsg);
-
         if (currentLine > 0 && currentLine <= codeLines.length) {
             String line = codeLines[currentLine - 1];
             System.out.println(line);
@@ -117,7 +153,8 @@ public class Parser {
         }
     }
 
-    // ================================== GRAMÁTICA ==================================
+    // ================= GRAMÁTICA =================
+
     private boolean file() {
         ast.addRuleNode("file");
         boolean result = bloco() && token != null && "EOF".equals(token.tipo);
@@ -144,7 +181,6 @@ public class Parser {
     private boolean cmd() {
         if (token == null)
             return false;
-
         if (token.tipo.equals("OP_IF"))
             return cmdIf();
         if (token.tipo.equals("OP_FOR"))
@@ -160,9 +196,11 @@ public class Parser {
         if (token.tipo.equals("OP_INPUT"))
             return cmdInput();
         if (token.tipo.equals("OP_CONTINUE") || token.tipo.equals("OP_BREAK")) {
-            return matchT("OP_CONTINUE", "continue") || matchT("OP_BREAK", "break");
+            boolean ok = matchT("OP_CONTINUE", "continue") || matchT("OP_BREAK", "break");
+            if (ok)
+                matchT("SEMICOLON", ";");
+            return ok;
         }
-
         boolean temTipo = tipo();
         if (temTipo || (token != null && token.tipo.equals("ID"))) {
             return cmdID();
@@ -172,15 +210,38 @@ public class Parser {
 
     private boolean cmdID() {
         ast.addRuleNode("cmdID");
-        if (lastType != null) {
+        boolean isDecl = (lastType != null);
+        if (isDecl) {
             ast.addTerminalNode(lastType, currentLine);
+            write(lastType);
+            write(" ");
         }
-        if (id() && acessoListaOp() && complemento()) {
-            lastType = null;
-            if (matchT("SEMICOLON", ";")) {
-                ast.endRuleNode();
-                return true;
+        if (!id()) {
+            ast.endRuleNode();
+            return false;
+        }
+        if (isDecl) {
+            // Declaração: pode ter inicialização opcional
+            if (matchT("ASSIGN", "")) {
+                write(" = ");
+                if (!valor()) {
+                    ast.endRuleNode();
+                    return false;
+                }
             }
+        } else {
+            // Atribuição: acesso a array opcional e complemento
+            acessoListaOp(); // gera os colchetes
+            if (!complemento()) {
+                ast.endRuleNode();
+                return false;
+            }
+        }
+        if (matchT("SEMICOLON", "")) {
+            write(";\n");
+            lastType = null;
+            ast.endRuleNode();
+            return true;
         }
         lastType = null;
         ast.endRuleNode();
@@ -188,32 +249,49 @@ public class Parser {
     }
 
     private boolean acessoListaOp() {
-        if (matchT("OPEN_BRACKETS", "[")) {
-            return acessoLista() && acessoListaOp();
+        // Lookahead para evitar conflito com lista literal
+        if (token != null && token.tipo.equals("OPEN_BRACKETS")) {
+            Token savedToken = token;
+            List<Token> savedTokens = new ArrayList<>(tokens);
+            if (matchT("OPEN_BRACKETS", "[")) {
+                if (expressaoAritmetica() && matchT("CLOSE_BRACKETS", "]")) {
+                    acessoListaOp();
+                    return true;
+                }
+            }
+            token = savedToken;
+            tokens = savedTokens;
         }
         return true;
     }
 
     private boolean acessoLista() {
-        if (matchT("OPEN_BRACKETS", "[") && expressaoAritmetica()
-                && matchT("CLOSE_BRACKETS", "]")) {
-            return true;
+        if (matchT("OPEN_BRACKETS", "[")) {
+            if (expressaoAritmetica() && matchT("CLOSE_BRACKETS", "]")) {
+                return true;
+            }
         }
         return false;
     }
 
     private boolean complemento() {
-        if (matchT("ASSIGN", "="))
+        if (matchT("ASSIGN", "")) {
+            write(" = ");
             return valor();
-        if (operadorAssignOp())
+        }
+        if (operadorAssignOp()) {
             return valor();
-        if (matchT("OPEN_PARENTHESIS", "("))
-            return corpoLista() && matchT("CLOSE_PARENTHESIS", ")");
-
-        // Suporte a incremento/decremento pós-fixado: var++; ou var--;
-        if (matchT("INCREMENT", "++") || matchT("DECREMENT", "--"))
+        }
+        if (matchT("OPEN_PARENTHESIS", "(")) {
+            write("(");
+            boolean ok = corpoLista() && matchT("CLOSE_PARENTHESIS", "");
+            write(")");
+            return ok;
+        }
+        if (matchT("INCREMENT", "++") || matchT("DECREMENT", "--")) {
+            // já escrito pelo matchT
             return true;
-
+        }
         return true;
     }
 
@@ -221,14 +299,15 @@ public class Parser {
         if (matchT("PLUS_ASSIGN", "+=") || matchT("MINUS_ASSIGN", "-=")
                 || matchT("TIMES_ASSIGN", "*=") || matchT("DIV_ASSIGN", "/=")
                 || matchT("MOD_ASSIGN", "%=") || matchT("POW_ASSIGN", "^=")) {
-            return true;
+            return valor();
         }
         return false;
     }
 
     private boolean valor() {
-        if (matchT("OPEN_BRACKETS", "["))
+        if (matchT("OPEN_BRACKETS", "[")) {
             return lista();
+        }
         if (token != null && token.tipo.equals("OP_PRINT"))
             return cmdPrint();
         if (token != null && token.tipo.equals("OP_INPUT"))
@@ -239,7 +318,13 @@ public class Parser {
     private boolean expressaoLogica() {
         if (!expressaoRelacional())
             return false;
-        while (matchT("AND", "&&") || matchT("OR", "||")) {
+        while (token != null && (token.tipo.equals("AND") || token.tipo.equals("OR"))) {
+            String op = token.tipo.equals("AND") ? "&&" : "||";
+            if (token.linha > currentLine)
+                currentLine = token.linha;
+            ast.addTerminalNode(op, currentLine);
+            token = getNextToken();
+            write(" " + op + " ");
             if (!expressaoRelacional())
                 return false;
         }
@@ -257,10 +342,17 @@ public class Parser {
     }
 
     private boolean op_comparacao() {
-        if (matchT("GREATER", ">") || matchT("LESS", "<") || matchT("EQUAL", "==")
-                || matchT("DIFFERENT", "!=") || matchT("GREATER_EQUAL", ">=")
-                || matchT("LESS_EQUAL", "<=")) {
-            return true;
+        String[] types = {"GREATER", "LESS", "EQUAL", "DIFFERENT", "GREATER_EQUAL", "LESS_EQUAL"};
+        String[] ops = {">", "<", "==", "!=", ">=", "<="};
+        for (int i = 0; i < types.length; i++) {
+            if (token != null && token.tipo.equals(types[i])) {
+                if (token.linha > currentLine)
+                    currentLine = token.linha;
+                ast.addTerminalNode(ops[i], currentLine);
+                token = getNextToken();
+                write(" " + ops[i] + " ");
+                return true;
+            }
         }
         return false;
     }
@@ -276,8 +368,29 @@ public class Parser {
     }
 
     private boolean op_adicao() {
-        if (matchT("PLUS", "+") || matchT("MINUS", "-"))
+        if (token != null && (token.tipo.equals("PLUS") || token.tipo.equals("MINUS"))) {
+            String op = token.tipo.equals("PLUS") ? "+" : "-";
+            if (token.linha > currentLine)
+                currentLine = token.linha;
+            ast.addTerminalNode(op, currentLine);
+            token = getNextToken();
+            write(" " + op + " ");
             return true;
+        }
+        return false;
+    }
+
+    private boolean op_mult() {
+        if (token != null && (token.tipo.equals("TIMES") || token.tipo.equals("DIV")
+                || token.tipo.equals("MOD"))) {
+            String op = token.tipo.equals("TIMES") ? "*" : token.tipo.equals("DIV") ? "/" : "%";
+            if (token.linha > currentLine)
+                currentLine = token.linha;
+            ast.addTerminalNode(op, currentLine);
+            token = getNextToken();
+            write(" " + op + " ");
+            return true;
+        }
         return false;
     }
 
@@ -289,12 +402,6 @@ public class Parser {
                 return false;
         }
         return true;
-    }
-
-    private boolean op_mult() {
-        if (matchT("TIMES", "*") || matchT("DIV", "/") || matchT("MOD", "%"))
-            return true;
-        return false;
     }
 
     private boolean fator() {
@@ -319,29 +426,26 @@ public class Parser {
         if (token != null && token.tipo.equals("INT")) {
             String lex = token.lexema;
             matchT("INT", lex);
-            ast.addTerminalNode(lex);
             return true;
         }
         if (token != null && token.tipo.equals("FLOAT")) {
             String lex = token.lexema;
             matchT("FLOAT", lex);
-            ast.addTerminalNode(lex);
             return true;
         }
         if (token != null && token.tipo.equals("STR")) {
             String lex = token.lexema;
             matchT("STR", "\"" + lex + "\"");
-            ast.addTerminalNode("\"" + lex + "\"");
             return true;
         }
         if (token != null && token.tipo.equals("BOOL")) {
             String lex = token.lexema;
             matchT("BOOL", lex);
-            ast.addTerminalNode(lex);
             return true;
         }
         if (matchT("OPEN_PARENTHESIS", "(")) {
-            return expressaoLogica() && matchT("CLOSE_PARENTHESIS", ")");
+            boolean ok = expressaoLogica() && matchT("CLOSE_PARENTHESIS", ")");
+            return ok;
         }
         return false;
     }
@@ -357,10 +461,12 @@ public class Parser {
 
     private boolean composicao() {
         if (matchT("OPEN_BRACKETS", "[")) {
-            return expressaoAritmetica() && matchT("CLOSE_BRACKETS", "]") && acessoListaOp();
+            boolean ok = expressaoAritmetica() && matchT("CLOSE_BRACKETS", "]") && acessoListaOp();
+            return ok;
         }
         if (matchT("OPEN_PARENTHESIS", "(")) {
-            return corpoLista() && matchT("CLOSE_PARENTHESIS", ")");
+            boolean ok = corpoLista() && matchT("CLOSE_PARENTHESIS", ")");
+            return ok;
         }
         return false;
     }
@@ -376,43 +482,69 @@ public class Parser {
     }
 
     private boolean entradaLista() {
-        if (matchT("COMMA", ","))
+        if (matchT("COMMA", ",")) {
             return valor() && entradaLista();
+        }
         return true;
     }
 
     private boolean lista() {
         if (matchT("OPEN_BRACKETS", "[")) {
-            return corpoLista() && matchT("CLOSE_BRACKETS", "]");
+            write("{");
+            boolean ok = corpoLista() && matchT("CLOSE_BRACKETS", "]");
+            write("}");
+            return ok;
         }
         return false;
     }
 
     private boolean cmdIf() {
         ast.addRuleNode("cmdIf");
-        if (matchT("OP_IF", "if") && valor() && matchT("OPEN_BRACES", "{") && bloco()
-                && matchT("CLOSE_BRACES", "}") && cmdElse()) {
-            ast.endRuleNode();
-            return true;
+        if (matchT("OP_IF", "if")) {
+            write("(");
+            if (matchT("OPEN_PARENTHESIS", "")) {
+                if (valor() && matchT("CLOSE_PARENTHESIS", "")) {
+                    write(") {\n");
+                    if (matchT("OPEN_BRACES", "") && bloco() && matchT("CLOSE_BRACES", "")) {
+                        write("}");
+                        if (cmdElse()) {
+                            ast.endRuleNode();
+                            return true;
+                        }
+                    }
+                }
+            }
         }
         ast.endRuleNode();
         return false;
     }
 
     private boolean cmdElse() {
-        if (matchT("OP_ELSE", "else") && matchT("OPEN_BRACES", "{") && bloco()
-                && matchT("CLOSE_BRACES", "}")) {
-            return true;
+        if (matchT("OP_ELSE", "")) {
+            write(" else {\n");
+            if (matchT("OPEN_BRACES", "") && bloco() && matchT("CLOSE_BRACES", "")) {
+                write("}");
+                return true;
+            }
+            return false;
         }
         return true;
     }
 
     private boolean cmdWhile() {
         ast.addRuleNode("cmdWhile");
-        if (matchT("OP_WHILE", "while") && valor() && matchT("OPEN_BRACES", "{") && bloco()
-                && matchT("CLOSE_BRACES", "}")) {
-            ast.endRuleNode();
-            return true;
+        if (matchT("OP_WHILE", "while")) {
+            write("(");
+            if (matchT("OPEN_PARENTHESIS", "")) {
+                if (valor() && matchT("CLOSE_PARENTHESIS", "")) {
+                    write(") {\n");
+                    if (matchT("OPEN_BRACES", "") && bloco() && matchT("CLOSE_BRACES", "")) {
+                        write("}");
+                        ast.endRuleNode();
+                        return true;
+                    }
+                }
+            }
         }
         ast.endRuleNode();
         return false;
@@ -420,12 +552,34 @@ public class Parser {
 
     private boolean cmdFor() {
         ast.addRuleNode("cmdFor");
-        if (matchT("OP_FOR", "for") && matchT("OPEN_PARENTHESIS", "(") && variavelFor()
-                && matchT("SEMICOLON", ";") && expressaoRelacional() && matchT("SEMICOLON", ";")
-                && expressaoAritmetica() && matchT("CLOSE_PARENTHESIS", ")")
-                && matchT("OPEN_BRACES", "{") && bloco() && matchT("CLOSE_BRACES", "}")) {
-            ast.endRuleNode();
-            return true;
+        if (matchT("OP_FOR", "for")) {
+            write("(");
+            if (matchT("OPEN_PARENTHESIS", "")) {
+                // Inicialização
+                if (!variavelFor())
+                    return false;
+                // Condição
+                if (matchT("SEMICOLON", "")) {
+                    write("; ");
+                    if (!expressaoRelacional())
+                        return false;
+                    // Incremento
+                    if (matchT("SEMICOLON", "")) {
+                        write("; ");
+                        if (!expressaoAritmetica())
+                            return false;
+                        if (matchT("CLOSE_PARENTHESIS", "")) {
+                            write(") {\n");
+                            if (matchT("OPEN_BRACES", "") && bloco()
+                                    && matchT("CLOSE_BRACES", "")) {
+                                write("}\n");
+                                ast.endRuleNode();
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
         }
         ast.endRuleNode();
         return false;
@@ -433,26 +587,54 @@ public class Parser {
 
     private boolean variavelFor() {
         if (tipo()) {
-            if (id() && complemento()) {
-                lastType = null;
-                return true;
+            ast.addTerminalNode(lastType, currentLine);
+            write(lastType);
+            write(" ");
+            if (id()) {
+                if (matchT("ASSIGN", "")) {
+                    write(" = ");
+                    if (expressaoAritmetica())
+                        return true;
+                } else {
+                    return true;
+                }
             }
             lastType = null;
             return false;
         }
-        if (id() && complemento())
+        if (id()) {
+            if (matchT("ASSIGN", "")) {
+                write(" = ");
+                return expressaoAritmetica();
+            }
             return true;
+        }
         return false;
     }
 
     private boolean cmdDefFunc() {
         ast.addRuleNode("cmdDefFunc");
-        if (matchT("OP_FUNCTION", "void") && id() && matchT("OPEN_PARENTHESIS", "(")
-                && listaParametros() && matchT("CLOSE_PARENTHESIS", ")")
-                && matchT("OPEN_BRACES", "{") && bloco() && matchT("CLOSE_BRACES", "}")) {
-            ast.endRuleNode();
-            return true;
+        insideFunction = true;
+        if (matchT("OP_FUNCTION", "")) {
+            write("void ");
+            if (id()) {
+                write("(");
+                if (matchT("OPEN_PARENTHESIS", "")) {
+                    if (listaParametros() && matchT("CLOSE_PARENTHESIS", "")) {
+                        write(") {\n");
+                        if (matchT("OPEN_BRACES", "")) {
+                            if (bloco() && matchT("CLOSE_BRACES", "")) {
+                                write("}\n\n");
+                                insideFunction = false;
+                                ast.endRuleNode();
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
         }
+        insideFunction = false;
         ast.endRuleNode();
         return false;
     }
@@ -464,17 +646,22 @@ public class Parser {
     }
 
     private boolean entradaListaParam() {
-        if (matchT("COMMA", ","))
+        if (matchT("COMMA", ",")) {
+            write(", ");
             return id() && entradaListaParam();
+        }
         return true;
     }
 
     private boolean cmdReturn() {
         ast.addRuleNode("cmdReturn");
         if (matchT("OP_RETURN", "return")) {
-            valorRetorno();
-            ast.endRuleNode();
-            return true;
+            write("return");
+            if (valorRetorno()) {
+                write(";\n");
+                ast.endRuleNode();
+                return true;
+            }
         }
         ast.endRuleNode();
         return false;
@@ -485,45 +672,70 @@ public class Parser {
                 || token.tipo.equals("OP_CONTINUE") || token.tipo.equals("OP_BREAK")) {
             return true;
         }
+        write(" ");
         return valor();
     }
 
     private boolean cmdPrint() {
         ast.addRuleNode("cmdPrint");
-        if (matchT("OP_PRINT", "printf") && matchT("OPEN_PARENTHESIS", "(") && corpoLista()
-                && matchT("CLOSE_PARENTHESIS", ")") && matchT("SEMICOLON", ";")) {
-            ast.endRuleNode();
-            return true;
+        if (matchT("OP_PRINT", "") && matchT("OPEN_PARENTHESIS", "")) {
+            // Capturar o argumento para decidir o formato
+            printfArgBuffer = new StringBuilder();
+            boolean ok = corpoLista();
+            String arg = printfArgBuffer.toString().trim();
+            printfArgBuffer = null;
+            if (ok && matchT("CLOSE_PARENTHESIS", "") && matchT("SEMICOLON", "")) {
+                // Verificar se o argumento é um literal string
+                if (arg.startsWith("\"")) {
+                    write("printf(" + arg + ");\n");
+                } else {
+                    write("printf(\"%d\", " + arg + ");\n");
+                }
+                ast.endRuleNode();
+                return true;
+            }
         }
         ast.endRuleNode();
         return false;
     }
 
+    // Sobrecarga para escrever com formato (usado no printf)
+    private void write(String format, String arg) {
+        write(String.format(format, arg));
+    }
+
     private boolean cmdInput() {
         ast.addRuleNode("cmdInput");
-        if (matchT("OP_INPUT", "scanf") && matchT("OPEN_PARENTHESIS", "(") && corpoLista()
-                && matchT("CLOSE_PARENTHESIS", ")") && matchT("SEMICOLON", ";")) {
-            ast.endRuleNode();
-            return true;
+        if (matchT("OP_INPUT", "scanf")) {
+            write("(");
+            if (matchT("OPEN_PARENTHESIS", "")) {
+                if (corpoLista() && matchT("CLOSE_PARENTHESIS", "")) {
+                    write(");\n");
+                    if (matchT("SEMICOLON", "")) {
+                        ast.endRuleNode();
+                        return true;
+                    }
+                }
+            }
         }
         ast.endRuleNode();
         return false;
     }
 
     private boolean tipo() {
-        if (matchT("INT_TYPE", "int")) {
+        if (matchT("INT_TYPE", "")) {
             lastType = "int";
             return true;
         }
-        if (matchT("FLOAT_TYPE", "float")) {
+        if (matchT("FLOAT_TYPE", "")) {
             lastType = "float";
             return true;
         }
-        if (matchT("BOOL_TYPE", "bool")) {
+        if (matchT("BOOL_TYPE", "")) {
             lastType = "bool";
             return true;
         }
-        if (matchT("STR_TYPE", "char*")) {
+        if (matchT("STR_TYPE", "")) {
             lastType = "char*";
             return true;
         }
@@ -539,33 +751,9 @@ public class Parser {
         return false;
     }
 
-    // ================= ESCRITA E MATCH =================
+    // ================= MATCH COM ESCRITA INTELIGENTE =================
     private void traduz(String code) {
         write(code);
-    }
-
-    private void write(String code) {
-        if (this.writer == null)
-            return;
-        try {
-            this.writer.write(code);
-        } catch (IOException e) {
-            System.out.println("Erro ao escrever: " + e.getMessage());
-        }
-    }
-
-    private void writeLine(String code) {
-        write(code);
-    }
-
-    private void closeWriter() {
-        if (this.writer == null)
-            return;
-        try {
-            this.writer.close();
-        } catch (IOException e) {
-            System.out.println("Erro ao fechar: " + e.getMessage());
-        }
     }
 
     private boolean matchT(String palavra) {
@@ -582,8 +770,35 @@ public class Parser {
         if (token != null && token.tipo.equals(palavra)) {
             if (token.linha > currentLine)
                 currentLine = token.linha;
-            traduz(newcode);
-            ast.addTerminalNode(newcode, currentLine);
+
+            // Se estamos capturando para o printf, armazena no buffer
+            if (printfArgBuffer != null) {
+                if (!newcode.isEmpty()) {
+                    if (printfArgBuffer.length() > 0) {
+                        char last = printfArgBuffer.charAt(printfArgBuffer.length() - 1);
+                        if (last != ' ' && last != '(' && !newcode.equals(")")
+                                && !newcode.equals(","))
+                            printfArgBuffer.append(" ");
+                    }
+                    printfArgBuffer.append(newcode);
+                }
+            } else if (!newcode.isEmpty()) {
+                StringBuilder lastBuff = insideFunction ? globalCode : mainCode;
+                if (lastBuff.length() > 0) {
+                    char last = lastBuff.charAt(lastBuff.length() - 1);
+                    // Add a space only between two word-like tokens
+                    boolean lastIsWord = Character.isLetterOrDigit(last) || last == '_';
+                    boolean nextIsWord =
+                            newcode.length() > 0 && (Character.isLetterOrDigit(newcode.charAt(0))
+                                    || newcode.charAt(0) == '_');
+                    if (lastIsWord && nextIsWord)
+                        write(" ");
+                }
+                write(newcode);
+            }
+
+            if (!newcode.isEmpty())
+                ast.addTerminalNode(newcode, currentLine);
             token = getNextToken();
             return true;
         }

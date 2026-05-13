@@ -7,16 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Analisador Semântico da linguagem Императрица. Verificações: 1. Variável/função usada antes de
- * ser declarada 2. Redeclaração no mesmo escopo 3. Compatibilidade de tipos em atribuições 4.
- * Número de argumentos em chamadas de função 5. Escopo: funções e for criam novo escopo
- */
 public class SemanticAnalyzer {
-
-    // =========================================================================
-    // Tabela de Símbolos
-    // =========================================================================
     private static class Symbol {
         enum Kind {
             VARIABLE, FUNCTION
@@ -32,13 +23,6 @@ public class SemanticAnalyzer {
             this.type = type;
             this.kind = kind;
             this.arity = arity;
-        }
-
-        @Override
-        public String toString() {
-            return kind == Kind.FUNCTION
-                    ? String.format("[FUNC] %-20s  retorno=%-8s arity=%d", name, type, arity)
-                    : String.format("[VAR ] %-20s  tipo=%s", name, type);
         }
     }
 
@@ -57,7 +41,6 @@ public class SemanticAnalyzer {
         }
     }
 
-    // ✅ CORREÇÃO: declare agora recebe linha e repassa para reportError
     private void declare(Symbol s, int line) {
         Map<String, Symbol> current = scopeStack.peek();
         if (current == null)
@@ -74,63 +57,50 @@ public class SemanticAnalyzer {
     }
 
     private Symbol lookupSilent(String name) {
-        for (Map<String, Symbol> scope : scopeStack) {
+        for (Map<String, Symbol> scope : scopeStack)
             if (scope.containsKey(name))
                 return scope.get(name);
-        }
         return null;
     }
 
-    // ✅ CORREÇÃO: lookup agora recebe linha e repassa para reportError
     private Symbol lookup(String name, int line) {
         Symbol s = lookupSilent(name);
-        if (s == null) {
+        if (s == null)
             reportError(String.format("Erro semântico: símbolo '%s' não foi declarado.", name),
                     line);
-        }
         return s;
     }
 
-    // =========================================================================
-    // Acumulador de erros
-    // =========================================================================
     private final StringBuilder errors = new StringBuilder();
     private int errorCount = 0;
 
-    
     private void reportError(String msg, int line) {
         errorCount++;
-        String loc = line > 0 ? " (linha " + line + ")" : "";
-        errors.append("  [").append(errorCount).append("] ").append(msg).append(loc).append("\n");
+        errors.append("  [").append(errorCount).append("] ").append(msg);
+        if (line > 0)
+            errors.append(" (linha ").append(line).append(")");
+        errors.append("\n");
     }
 
     private void reportError(String msg) {
         reportError(msg, 0);
     }
 
-    // =========================================================================
-    // Ponto de entrada
-    // =========================================================================
     public void analyze(TreeNode root) throws SemanticException {
         scopeStack.push(new HashMap<>());
         visitNode(root);
         scopeStack.pop();
-        if (errorCount > 0) {
+        if (errorCount > 0)
             throw new SemanticException(
                     errorCount + " erro(s) semântico(s) encontrado(s):\n" + errors);
-        }
     }
 
-    // =========================================================================
-    // Visitor principal
-    // =========================================================================
     private void visitNode(TreeNode node) {
         if (node == null)
             return;
         String v = node.getValue();
         if (v == null)
             return;
-
         switch (v) {
             case "file":
             case "bloco":
@@ -168,9 +138,8 @@ public class SemanticAnalyzer {
     }
 
     private void visitChildren(TreeNode node) {
-        for (TreeNode child : node.getChildren()) {
+        for (TreeNode child : node.getChildren())
             visitNode(child);
-        }
     }
 
     private void visitChildrenCheckingIds(TreeNode node) {
@@ -178,63 +147,46 @@ public class SemanticAnalyzer {
             String v = child.getValue();
             if (v == null)
                 continue;
-
             if (isRuleNode(v)) {
                 visitNode(child);
                 continue;
             }
-
             if (isIdentifier(v) && !isPunctuation(v) && !isCKeyword(v) && !isTypeLiteral(v)
                     && classifyLiteral(v).equals("unknown")) {
-                // ✅ CORREÇÃO: passar linha do nó filho
                 lookup(v, child.getLine());
             }
-
-            if (!child.getChildren().isEmpty()) {
+            if (!child.getChildren().isEmpty())
                 visitChildrenCheckingIds(child);
-            }
         }
     }
 
-    // =========================================================================
-    // cmdID → declaração | atribuição | chamada de função
-    // =========================================================================
     private void visitCmdID(TreeNode node) {
         List<TreeNode> ch = node.getChildren();
         if (ch.isEmpty())
             return;
         String first = ch.get(0).getValue();
-
-        // ── Declaração de variável ────────────────────────────────────────
         if (isTypeLiteral(first)) {
             if (ch.size() < 2)
                 return;
             String type = normalizeType(first);
             String varName = ch.get(1).getValue();
-
-            // ✅ CORREÇÃO: passar linha da variável declarada
             declare(new Symbol(varName, type, Symbol.Kind.VARIABLE, 0), ch.get(1).getLine());
-
             if (ch.size() > 3) {
                 checkIdsInRange(ch, 3, ch.size() - 1);
                 String rhsType = inferType(ch, 3, ch.size() - 1);
                 if (!rhsType.equals("unknown") && !typesCompatible(type, rhsType)) {
                     reportError(String.format(
-                            "Erro semântico: não é possível atribuir valor do tipo '%s' "
-                                    + "à variável '%s' declarada como '%s'.",
+                            "Erro semântico: não é possível atribuir valor do tipo '%s' à variável '%s' declarada como '%s'.",
                             rhsType, varName, type), ch.get(3).getLine());
                 }
             }
             return;
         }
 
-        // ── Atribuição ou chamada ─────────────────────────────────────────
         String name = first;
-        // ✅ CORREÇÃO: passar linha do ID na lookup
         Symbol sym = lookup(name, ch.get(0).getLine());
         if (sym == null)
             return;
-
         boolean isCall = ch.size() > 1 && "(".equals(ch.get(1).getValue());
 
         if (isCall) {
@@ -250,7 +202,6 @@ public class SemanticAnalyzer {
                         name), ch.get(0).getLine());
                 return;
             }
-
             int provided = 0;
             boolean inArgs = false;
             for (int i = 1; i < ch.size(); i++) {
@@ -266,16 +217,14 @@ public class SemanticAnalyzer {
                 if (inArgs && !",".equals(cv) && !";".equals(cv))
                     provided++;
             }
-            if (provided != sym.arity) {
+            if (provided != sym.arity)
                 reportError(String.format(
                         "Erro semântico: função '%s' espera %d argumento(s), mas recebeu %d.", name,
                         sym.arity, provided), ch.get(1).getLine());
-            }
             checkIdsInRange(ch, 2, ch.size() - 1);
             return;
         }
 
-        // Atribuição simples
         if (sym.kind == Symbol.Kind.FUNCTION) {
             reportError(String
                     .format("Erro semântico: '%s' é uma função; use '(' ')' para chamá-la.", name),
@@ -286,23 +235,18 @@ public class SemanticAnalyzer {
             checkIdsInRange(ch, 2, ch.size() - 1);
             String rhsType = inferType(ch, 2, ch.size() - 1);
             if (!rhsType.equals("unknown") && !typesCompatible(sym.type, rhsType)) {
-                reportError(
-                        String.format("Erro semântico: não é possível atribuir valor do tipo '%s' "
-                                + "à variável '%s' do tipo '%s'.", rhsType, name, sym.type),
-                        ch.get(2).getLine());
+                reportError(String.format(
+                        "Erro semântico: não é possível atribuir valor do tipo '%s' à variável '%s' do tipo '%s'.",
+                        rhsType, name, sym.type), ch.get(2).getLine());
             }
         }
     }
 
-    // =========================================================================
-    // cmdDefFunc
-    // =========================================================================
     private void visitDefFunc(TreeNode node) {
         List<TreeNode> ch = node.getChildren();
         if (ch.size() < 2)
             return;
         String funcName = ch.get(1).getValue();
-
         int arity = 0;
         boolean inParams = false;
         int blocoIdx = -1;
@@ -323,10 +267,7 @@ public class SemanticAnalyzer {
             if (inParams && !",".equals(v))
                 arity++;
         }
-
-        // ✅ CORREÇÃO: passar linha do nome da função
         declare(new Symbol(funcName, "void", Symbol.Kind.FUNCTION, arity), ch.get(1).getLine());
-
         enterScope();
         inParams = false;
         for (TreeNode child : ch) {
@@ -341,19 +282,14 @@ public class SemanticAnalyzer {
             }
             if ("bloco".equals(v))
                 break;
-            if (inParams && !",".equals(v)) {
-                // ✅ CORREÇÃO: passar linha do parâmetro
+            if (inParams && !",".equals(v))
                 declare(new Symbol(v, "unknown", Symbol.Kind.VARIABLE, 0), child.getLine());
-            }
         }
         if (blocoIdx >= 0)
             visitNode(ch.get(blocoIdx));
         exitScope();
     }
 
-    // =========================================================================
-    // Helpers
-    // =========================================================================
     private void checkIdsInRange(List<TreeNode> children, int from, int to) {
         for (int i = from; i < to && i < children.size(); i++) {
             TreeNode child = children.get(i);
@@ -361,13 +297,10 @@ public class SemanticAnalyzer {
             if (v == null)
                 continue;
             if (isIdentifier(v) && !isPunctuation(v) && !isCKeyword(v) && !isTypeLiteral(v)
-                    && classifyLiteral(v).equals("unknown")) {
-                // ✅ CORREÇÃO: passar linha do nó filho
+                    && classifyLiteral(v).equals("unknown"))
                 lookup(v, child.getLine());
-            }
-            if (!child.getChildren().isEmpty()) {
+            if (!child.getChildren().isEmpty())
                 checkIdsInRange(child.getChildren(), 0, child.getChildren().size());
-            }
         }
     }
 
@@ -406,11 +339,9 @@ public class SemanticAnalyzer {
             }
             if (isIdentifier(v)) {
                 Symbol sym = lookupSilent(v);
-                if (sym != null && !sym.type.equals("unknown")) {
-                    if (result.equals("unknown")
-                            || (result.equals("int") && sym.type.equals("float")))
-                        result = sym.type;
-                }
+                if (sym != null && !sym.type.equals("unknown") && (result.equals("unknown")
+                        || (result.equals("int") && sym.type.equals("float"))))
+                    result = sym.type;
             }
         }
         return result;
@@ -429,7 +360,7 @@ public class SemanticAnalyzer {
     }
 
     private boolean isIdentifier(String v) {
-        return v != null && v.matches("[a-zA-Z_\u0400-\u04FF][a-zA-Z_0-9\u0400-\u04FF]*");
+        return v != null && v.matches("[a-zA-Z_\\u0400-\\u04FF][a-zA-Z_0-9\\u0400-\\u04FF]*");
     }
 
     private boolean isPunctuation(String v) {
@@ -454,51 +385,24 @@ public class SemanticAnalyzer {
         return "float".equals(declared) && "int".equals(assigned);
     }
 
-    // =========================================================================
-    // Dump (depuração)
-    // =========================================================================
-    public void dumpSymbolTable() {
-        int level = scopeLevel;
-        System.out.println("\n=== Tabela de Símbolos ===");
-        for (Map<String, Symbol> scope : scopeStack) {
-            System.out.println("  -- Escopo " + level-- + " --");
-            if (scope.isEmpty())
-                System.out.println("     (vazio)");
-            else
-                scope.values().forEach(s -> System.out.println("      " + s));
-        }
-        System.out.println("==========================\n");
-    }
-
-    /**
-     * Processa a seção de inicialização do for para declarar variáveis antes de verificar os demais
-     * usos de IDs.
-     */
     private void declareForLoopVariables(TreeNode node) {
         List<TreeNode> ch = node.getChildren();
         boolean inInit = true;
-
         for (int i = 0; i < ch.size() && inInit; i++) {
             TreeNode child = ch.get(i);
             String v = child.getValue();
             if (v == null)
                 continue;
-
-            // Padrão: tipo ID (ex: "int" seguido do nome da variável)
             if (isTypeLiteral(v) && i + 1 < ch.size()) {
                 String type = normalizeType(v);
                 String nextVal = ch.get(i + 1).getValue();
                 if (nextVal != null && isIdentifier(nextVal) && !isPunctuation(nextVal)
-                        && !isCKeyword(nextVal)) {
+                        && !isCKeyword(nextVal))
                     declare(new Symbol(nextVal, type, Symbol.Kind.VARIABLE, 0),
                             ch.get(i + 1).getLine());
-                }
             }
-
-            // Para no primeiro ponto e vírgula (fim da inicialização)
-            if (";".equals(v)) {
+            if (";".equals(v))
                 inInit = false;
-            }
         }
     }
 }
