@@ -26,6 +26,10 @@ public class Parser {
 
     // Buffer temporário para capturar o argumento do printf
     private StringBuilder printfArgBuffer = null;
+    // Buffers para gerar scanf corretamente em cmdInput
+    private boolean scanInputMode = false;
+    private StringBuilder scanfFormatBuffer = null;
+    private StringBuilder scanfArgsBuffer = null;
 
     public Parser(List<Token> tokens, String inputFilePath, String sourceCode) {
         this(tokens, inputFilePath, sourceCode, false, null);
@@ -716,19 +720,53 @@ public class Parser {
     private boolean cmdInput() {
         ast.addRuleNode("cmdInput");
         if (matchT("OP_INPUT", "scanf")) {
-            write("(");
             if (matchT("OPEN_PARENTHESIS", "")) {
-                if (corpoLista() && matchT("CLOSE_PARENTHESIS", "")) {
-                    write(");\n");
-                    if (matchT("SEMICOLON", "")) {
-                        ast.endRuleNode();
-                        return true;
+                scanInputMode = true;
+                scanfFormatBuffer = new StringBuilder();
+                scanfArgsBuffer = new StringBuilder();
+                boolean ok = scanInputArgs();
+                scanInputMode = false;
+                if (ok && matchT("CLOSE_PARENTHESIS", "") && matchT("SEMICOLON", "")) {
+                    String format = scanfFormatBuffer.toString().trim();
+                    String args = scanfArgsBuffer.toString();
+                    write("(\"" + format + "\"");
+                    if (!args.isEmpty()) {
+                        write(", " + args);
                     }
+                    write(");\n");
+                    ast.endRuleNode();
+                    return true;
                 }
             }
         }
         ast.endRuleNode();
         return false;
+    }
+
+    private boolean scanInputArgs() {
+        if (token != null && token.tipo.equals("ID")) {
+            addScanArg(token.lexema);
+            matchT("ID", token.lexema);
+            while (matchT("COMMA", ",")) {
+                if (token != null && token.tipo.equals("ID")) {
+                    addScanArg(token.lexema);
+                    matchT("ID", token.lexema);
+                } else {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private void addScanArg(String varName) {
+        if (scanfFormatBuffer.length() > 0)
+            scanfFormatBuffer.append(" ");
+        scanfFormatBuffer.append("%d");
+        if (scanfArgsBuffer.length() > 0)
+            scanfArgsBuffer.append(", ");
+        scanfArgsBuffer.append("&").append(varName);
     }
 
     private boolean tipo() {
@@ -791,17 +829,19 @@ public class Parser {
                     printfArgBuffer.append(newcode);
                 }
             } else if (!newcode.isEmpty()) {
-                StringBuilder lastBuff = insideFunction ? globalCode : mainCode;
-                if (lastBuff.length() > 0) {
-                    char last = lastBuff.charAt(lastBuff.length() - 1);
-                    // Add a space only between two word-like tokens
-                    boolean lastIsWord = Character.isLetterOrDigit(last) || last == '_';
-                    boolean nextIsWord = newcode.length() > 0 &&
-                            (Character.isLetterOrDigit(newcode.charAt(0)) || newcode.charAt(0) == '_');
-                    if (lastIsWord && nextIsWord)
-                        write(" ");
+                if (!scanInputMode) {
+                    StringBuilder lastBuff = insideFunction ? globalCode : mainCode;
+                    if (lastBuff.length() > 0) {
+                        char last = lastBuff.charAt(lastBuff.length() - 1);
+                        // Add a space only between two word-like tokens
+                        boolean lastIsWord = Character.isLetterOrDigit(last) || last == '_';
+                        boolean nextIsWord = newcode.length() > 0 &&
+                                (Character.isLetterOrDigit(newcode.charAt(0)) || newcode.charAt(0) == '_');
+                        if (lastIsWord && nextIsWord)
+                            write(" ");
+                    }
+                    write(newcode);
                 }
-                write(newcode);
             }
 
             if (!newcode.isEmpty())

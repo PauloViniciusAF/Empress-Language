@@ -1,47 +1,82 @@
 #!/bin/bash
 
-# Script para compilar e executar arquivos Empress Language (.emp)
+# Script para Empress Language (.emp)
+# Sempre gera C, compila e executa.
+# Flags --token e/ou --tree são repassadas ao compilador Java
+# (para exibição adicional), mas não interrompem o fluxo de C.
 
 if [ $# -lt 1 ]; then
-    echo "Uso: императрица <arquivo.emp>"
+    echo "Uso: императрица <arquivo.emp> [--token] [--tree]"
     exit 1
 fi
 
-# Verifica se o arquivo existe
-if [ ! -f "$1" ]; then
-    echo "Erro: Arquivo '$1' não encontrado"
+# Encontra o arquivo .emp (ignorando flags)
+EMP_FILE=""
+FLAGS=()
+
+for arg in "$@"; do
+    if [[ "$arg" == --token ]] || [[ "$arg" == --tree ]]; then
+        FLAGS+=("$arg")
+    elif [ -z "$EMP_FILE" ]; then
+        EMP_FILE="$arg"
+    else
+        # Caso haja mais argumentos não reconhecidos, apenas ignora ou adiciona
+        :
+    fi
+done
+
+if [ -z "$EMP_FILE" ]; then
+    echo "Erro: Nenhum arquivo .emp especificado"
     exit 1
 fi
 
-# Verifica se é um arquivo .emp
-if [[ ! "$1" =~ \.emp$ ]]; then
+if [ ! -f "$EMP_FILE" ]; then
+    echo "Erro: Arquivo '$EMP_FILE' não encontrado"
+    exit 1
+fi
+
+if [[ ! "$EMP_FILE" =~ \.emp$ ]]; then
     echo "Erro: O arquivo deve ter extensão .emp"
     exit 1
 fi
 
-# Diretório do script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC_DIR="$SCRIPT_DIR/src"
 BUILD_DIR="$SCRIPT_DIR/build"
 
-# Cria o diretório de build se não existir
 mkdir -p "$BUILD_DIR"
 
-
-# Compila os arquivos Java
+# Compila os fontes Java (se necessário)
 javac -d "$BUILD_DIR" "$SRC_DIR"/lexer/*.java "$SRC_DIR"/sintatico/*.java "$SRC_DIR"/semantico/*.java "$SRC_DIR"/Main.java 2>&1
-
-# Verifica se a compilação foi bem-sucedida
 if [ $? -ne 0 ]; then
-    echo "Erro na compilação"
+    echo "Erro na compilação do compilador Java"
     exit 1
 fi
 
-# Executa o programa com o arquivo como argumento
 cd "$SCRIPT_DIR"
 
-# Passa todos os argumentos para o Java
-java -cp "$BUILD_DIR" Main "$@"
+# Executa o compilador Java com o arquivo .emp e as flags (se houver)
+# IMPORTANTE: o Main.java DEVE gerar o arquivo .c mesmo com --token ou --tree
+BASENAME=$(basename "$EMP_FILE" .emp)
+GENERATED_C="$BASENAME.c"
+OUTPUT_BIN="./$BASENAME"
 
+echo "Processando $EMP_FILE ${FLAGS[@]} ..."
+java -cp "$BUILD_DIR" Main "$EMP_FILE" "${FLAGS[@]}"
 
+# Verifica se o arquivo C foi gerado
+if [ ! -f "$GENERATED_C" ]; then
+    echo "Erro: O compilador Java não gerou $GENERATED_C"
+    echo "Certifique-se de que Main.java produz o .c mesmo com as flags."
+    exit 1
+fi
 
+echo "Compilando $GENERATED_C com gcc..."
+gcc "$GENERATED_C" -o "$OUTPUT_BIN" -lm -Wall
+if [ $? -ne 0 ]; then
+    echo "Erro na compilação do código C"
+    exit 1
+fi
+
+echo "Executando..."
+"$OUTPUT_BIN"

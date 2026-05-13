@@ -1,0 +1,16 @@
+функция verificarPar(numero) {
+    интеграл dobro := numero * 2;
+    
+    если (numero % 2 == 0) {
+        печать("Numero eh par");
+    }
+    иначе {
+        печать("Numero eh impar");
+    }
+    
+    печать("Dobro do numero:");
+    печать(dobro);
+    вернуть dobro
+}
+
+интеграл resultado := verificarPar(7);
