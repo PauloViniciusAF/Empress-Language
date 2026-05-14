@@ -5,7 +5,9 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import lexer.Token;
 
 public class Parser {
@@ -30,6 +32,9 @@ public class Parser {
     private boolean scanInputMode = false;
     private StringBuilder scanfFormatBuffer = null;
     private StringBuilder scanfArgsBuffer = null;
+
+    // Tabela de símbolos para tipos de variáveis
+    private Map<String, String> symbolTable = new HashMap<>();
 
     public Parser(List<Token> tokens, String inputFilePath, String sourceCode) {
         this(tokens, inputFilePath, sourceCode, false, null);
@@ -233,7 +238,8 @@ public class Parser {
             write(lastType);
             write(" ");
         }
-        if (!id()) {
+        String varName = id();
+        if (varName == null) {
             ast.endRuleNode();
             return false;
         }
@@ -260,6 +266,8 @@ public class Parser {
         }
         if (matchT("SEMICOLON", "")) {
             write(";\n");
+            if (isDecl)
+                symbolTable.put(varName, lastType);
             lastType = null;
             ast.endRuleNode();
             return true;
@@ -437,11 +445,13 @@ public class Parser {
 
     private boolean elemento() {
         if (matchT("INCREMENT", "++") || matchT("DECREMENT", "--")) {
-            if (id())
+            String varName = id();
+            if (varName != null)
                 return X();
             return false;
         }
-        if (id())
+        String varName = id();
+        if (varName != null)
             return X();
 
         if (token != null && token.tipo.equals("INT")) {
@@ -613,19 +623,24 @@ public class Parser {
             ast.addTerminalNode(lastType, currentLine);
             write(lastType);
             write(" ");
-            if (id()) {
+            String varName = id();
+            if (varName != null) {
                 if (matchT("ASSIGN", "")) {
                     write(" = ");
-                    if (expressaoAritmetica())
+                    if (expressaoAritmetica()) {
+                        symbolTable.put(varName, lastType);
                         return true;
+                    }
                 } else {
+                    symbolTable.put(varName, lastType);
                     return true;
                 }
             }
             lastType = null;
             return false;
         }
-        if (id()) {
+        String varName = id();
+        if (varName != null) {
             if (matchT("ASSIGN", "")) {
                 write(" = ");
                 return expressaoAritmetica();
@@ -647,7 +662,8 @@ public class Parser {
             }
             ast.addTerminalNode(returnType, currentLine);
             write(returnType + " ");
-            if (id()) {
+            String funcName = id();
+            if (funcName != null) {
                 write("(");
                 if (matchT("OPEN_PARENTHESIS", "")) {
                     if (listaParametros() && matchT("CLOSE_PARENTHESIS", "")) {
@@ -671,12 +687,17 @@ public class Parser {
 
     private boolean listaParametros() {
         tipo(); // consome o tipo se presente (ex: интеграл → "int")
+        String paramType = lastType;
         if (lastType != null) {
             write(lastType + " ");
             lastType = null;
         }
-        if (id())
+        String paramName = id();
+        if (paramName != null) {
+            symbolTable.put(paramName, paramType != null ? paramType : "int"); // default int if no
+                                                                               // type
             return entradaListaParam();
+        }
         return true;
     }
 
@@ -684,11 +705,17 @@ public class Parser {
         if (matchT("COMMA", "")) {
             write(", ");
             tipo(); // tipo opcional antes de cada parâmetro
+            String paramType = lastType;
             if (lastType != null) {
                 write(lastType + " ");
                 lastType = null;
             }
-            return id() && entradaListaParam();
+            String paramName = id();
+            if (paramName != null) {
+                symbolTable.put(paramName, paramType != null ? paramType : "int");
+                return entradaListaParam();
+            }
+            return false;
         }
         return true;
     }
@@ -724,16 +751,39 @@ public class Parser {
             String arg = printfArgBuffer.toString().trim();
             printfArgBuffer = null;
             if (ok && matchT("CLOSE_PARENTHESIS", "") && matchT("SEMICOLON", "")) {
-                if (arg.startsWith("\"")) {
-                    // String literal: embute \n antes de fechar as aspas
-                    String withNewline = arg.substring(0, arg.length() - 1) + "\\n\"";
-                    write("printf(" + withNewline + ");\n");
-                } else if (arg.matches("-?[0-9]+\\.[0-9]+")) {
-                    // Float literal
-                    write("printf(\"%f\\n\", " + arg + ");\n");
+                // Determinar o tipo do argumento para usar o % correto
+                if (arg.matches("[a-zA-Z_][a-zA-Z0-9_]*")) { // é um identificador
+                    String type = symbolTable.get(arg);
+                    if (type != null) {
+                        if (type.equals("int")) {
+                            write("printf(\"%d\\n\", " + arg + ");\n");
+                        } else if (type.equals("float")) {
+                            write("printf(\"%f\\n\", " + arg + ");\n");
+                        } else if (type.equals("bool")) {
+                            write("printf(\"%d\\n\", " + arg + ");\n");
+                        } else if (type.equals("char*")) {
+                            write("printf(\"%s\\n\", " + arg + ");\n");
+                        } else {
+                            // tipo desconhecido, usa %d por padrão
+                            write("printf(\"%d\\n\", " + arg + ");\n");
+                        }
+                    } else {
+                        // não encontrado, usa %d
+                        write("printf(\"%d\\n\", " + arg + ");\n");
+                    }
                 } else {
-                    // Variável ou int literal: usa %d por padrão
-                    write("printf(\"%d\\n\", " + arg + ");\n");
+                    // literal
+                    if (arg.startsWith("\"")) {
+                        // String literal: embute \n antes de fechar as aspas
+                        String withNewline = arg.substring(0, arg.length() - 1) + "\\n\"";
+                        write("printf(" + withNewline + ");\n");
+                    } else if (arg.matches("-?[0-9]+\\.[0-9]+")) {
+                        // Float literal
+                        write("printf(\"%f\\n\", " + arg + ");\n");
+                    } else {
+                        // Int literal ou outro, usa %d
+                        write("printf(\"%d\\n\", " + arg + ");\n");
+                    }
                 }
                 ast.endRuleNode();
                 return true;
@@ -820,13 +870,13 @@ public class Parser {
         return false;
     }
 
-    private boolean id() {
+    private String id() {
         if (token != null && token.tipo.equals("ID")) {
             String lexema = token.lexema;
             matchT("ID", lexema);
-            return true;
+            return lexema;
         }
-        return false;
+        return null;
     }
 
     // ================= MATCH COM ESCRITA INTELIGENTE =================
