@@ -190,12 +190,7 @@ public class SemanticAnalyzer {
         boolean isCall = ch.size() > 1 && "(".equals(ch.get(1).getValue());
 
         if (isCall) {
-            if ("void".equals(sym.type)) {
-                reportError(String.format(
-                        "Erro semântico: função '%s' é void e não pode ser usada em expressão.",
-                        name), ch.get(0).getLine());
-                return;
-            }
+
             if (sym.kind != Symbol.Kind.FUNCTION) {
                 reportError(String.format(
                         "Erro semântico: '%s' é uma variável e não pode ser chamada como função.",
@@ -246,45 +241,47 @@ public class SemanticAnalyzer {
         List<TreeNode> ch = node.getChildren();
         if (ch.size() < 2)
             return;
+
         String funcName = ch.get(1).getValue();
-        int arity = 0;
-        boolean inParams = false;
+
+        // Acha onde começa o bloco
         int blocoIdx = -1;
         for (int i = 0; i < ch.size(); i++) {
-            String v = ch.get(i).getValue();
-            if ("(".equals(v)) {
-                inParams = true;
-                continue;
-            }
-            if (")".equals(v)) {
-                inParams = false;
-                continue;
-            }
-            if ("bloco".equals(v)) {
+            if ("bloco".equals(ch.get(i).getValue())) {
                 blocoIdx = i;
                 break;
             }
-            if (inParams && !",".equals(v))
+        }
+
+        // Parâmetros ficam entre índice 2 e blocoIdx (exclusive)
+        int arity = 0;
+        for (int i = 2; blocoIdx > 2 && i < blocoIdx; i++) {
+            String v = ch.get(i).getValue();
+            if (!",".equals(v) && !isTypeLiteral(v))
                 arity++;
         }
+
         declare(new Symbol(funcName, "void", Symbol.Kind.FUNCTION, arity), ch.get(1).getLine());
         enterScope();
-        inParams = false;
-        for (TreeNode child : ch) {
+
+        // Declara os parâmetros no escopo da função
+        String pendingType = null;
+        for (int i = 2; blocoIdx > 2 && i < blocoIdx; i++) {
+            TreeNode child = ch.get(i);
             String v = child.getValue();
-            if ("(".equals(v)) {
-                inParams = true;
+            if (",".equals(v)) {
+                pendingType = null;
                 continue;
             }
-            if (")".equals(v)) {
-                inParams = false;
+            if (isTypeLiteral(v)) {
+                pendingType = normalizeType(v);
                 continue;
             }
-            if ("bloco".equals(v))
-                break;
-            if (inParams && !",".equals(v))
-                declare(new Symbol(v, "unknown", Symbol.Kind.VARIABLE, 0), child.getLine());
+            String paramType = (pendingType != null) ? pendingType : "unknown";
+            declare(new Symbol(v, paramType, Symbol.Kind.VARIABLE, 0), child.getLine());
+            pendingType = null;
         }
+
         if (blocoIdx >= 0)
             visitNode(ch.get(blocoIdx));
         exitScope();

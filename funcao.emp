@@ -1,0 +1,7 @@
+
+функция funcao( интеграл numero, интеграл numerob){
+    интеграл soma := numero + numerob;
+    печать(soma);
+}
+
+funcao(1, 2);
