@@ -6,6 +6,6 @@ int main() {
 int numero = 0;
 scanf("%d", &numero);
 int numerob = 25;
-printf("%d", numero + numerob);
+printf("%d\n", numero + numerob);
     return 0;
 }

@@ -5,7 +5,7 @@
 int main() {
 int numeroRep = 1;
 while(numeroRep < 10) {
-printf("%d", numeroRep);
+printf("%d\n", numeroRep);
 numeroRep++;
 }    return 0;
 }
