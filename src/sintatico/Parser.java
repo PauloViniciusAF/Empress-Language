@@ -74,6 +74,10 @@ public class Parser {
 
     // Escrita nos buffers apropriados
     private void write(String code) {
+        if (printfArgBuffer != null) { // ← adiciona esse bloco
+            printfArgBuffer.append(code);
+            return;
+        }
         if (insideFunction) {
             globalCode.append(code);
         } else {
@@ -234,9 +238,13 @@ public class Parser {
             return false;
         }
         if (isDecl) {
-            // Declaração: pode ter inicialização opcional
             if (matchT("ASSIGN", "")) {
-                write(" = ");
+                // Se o próximo token é '[', é atribuição de lista
+                if (token != null && token.tipo.equals("OPEN_BRACKETS")) {
+                    write("[] = ");
+                } else {
+                    write(" = ");
+                }
                 if (!valor()) {
                     ast.endRuleNode();
                     return false;
@@ -292,20 +300,19 @@ public class Parser {
             write(" = ");
             return valor();
         }
-        if (operadorAssignOp()) {
+        if (operadorAssignOp())
             return valor();
-        }
+
         if (matchT("OPEN_PARENTHESIS", "")) {
-            ast.addTerminalNode("(", currentLine);
             write("(");
+            ast.addRuleNode("args"); // ← abre nó args
             boolean ok = corpoLista() && matchT("CLOSE_PARENTHESIS", "");
+            ast.endRuleNode(); // ← fecha nó args
             write(")");
             return ok;
         }
-        if (matchT("INCREMENT", "++") || matchT("DECREMENT", "--")) {
-            // já escrito pelo matchT
+        if (matchT("INCREMENT", "++") || matchT("DECREMENT", "--"))
             return true;
-        }
         return true;
     }
 
@@ -319,8 +326,8 @@ public class Parser {
     }
 
     private boolean valor() {
-        if (matchT("OPEN_BRACKETS", "[")) {
-            return lista();
+        if (token != null && token.tipo.equals("OPEN_BRACKETS")) {
+            return lista(); // lista() já consome o [ e o ]
         }
         if (token != null && token.tipo.equals("OP_PRINT"))
             return cmdPrint();
@@ -467,7 +474,8 @@ public class Parser {
     private boolean X() {
         if (matchT("INCREMENT", "++") || matchT("DECREMENT", "--"))
             return true;
-        if (matchT("OPEN_BRACKETS", "[") || matchT("OPEN_PARENTHESIS", "(")) {
+        if (token != null
+                && (token.tipo.equals("OPEN_BRACKETS") || token.tipo.equals("OPEN_PARENTHESIS"))) {
             return composicao() && X();
         }
         return true;
@@ -496,16 +504,17 @@ public class Parser {
     }
 
     private boolean entradaLista() {
-        if (matchT("COMMA", ",")) {
+        if (matchT("COMMA", "")) { // consome sem adicionar à AST
+            write(", "); // escreve no C normalmente
             return valor() && entradaLista();
         }
         return true;
     }
 
     private boolean lista() {
-        if (matchT("OPEN_BRACKETS", "[")) {
+        if (matchT("OPEN_BRACKETS", "")) { // consome [ sem escrever
             write("{");
-            boolean ok = corpoLista() && matchT("CLOSE_BRACKETS", "]");
+            boolean ok = corpoLista() && matchT("CLOSE_BRACKETS", ""); // consome ] sem escrever
             write("}");
             return ok;
         }
@@ -630,8 +639,14 @@ public class Parser {
         ast.addRuleNode("cmdDefFunc");
         insideFunction = true;
         if (matchT("OP_FUNCTION", "")) {
-            ast.addTerminalNode("void", currentLine);
-            write("void ");
+            // Tipo de retorno opcional após функция (ex: интеграл → int); padrão void
+            String returnType = "void";
+            if (tipo()) {
+                returnType = (lastType != null) ? lastType : "void";
+                lastType = null;
+            }
+            ast.addTerminalNode(returnType, currentLine);
+            write(returnType + " ");
             if (id()) {
                 write("(");
                 if (matchT("OPEN_PARENTHESIS", "")) {
@@ -680,8 +695,8 @@ public class Parser {
 
     private boolean cmdReturn() {
         ast.addRuleNode("cmdReturn");
-        if (matchT("OP_RETURN", "return")) {
-            write("return");
+        if (matchT("OP_RETURN", "")) {
+            write("return ");
             if (valorRetorno()) {
                 write(";\n");
                 ast.endRuleNode();
@@ -704,17 +719,21 @@ public class Parser {
     private boolean cmdPrint() {
         ast.addRuleNode("cmdPrint");
         if (matchT("OP_PRINT", "") && matchT("OPEN_PARENTHESIS", "")) {
-            // Capturar o argumento para decidir o formato
             printfArgBuffer = new StringBuilder();
             boolean ok = corpoLista();
             String arg = printfArgBuffer.toString().trim();
             printfArgBuffer = null;
             if (ok && matchT("CLOSE_PARENTHESIS", "") && matchT("SEMICOLON", "")) {
-                // Verificar se o argumento é um literal string
                 if (arg.startsWith("\"")) {
-                    write("printf(" + arg + ");\n");
+                    // String literal: embute \n antes de fechar as aspas
+                    String withNewline = arg.substring(0, arg.length() - 1) + "\\n\"";
+                    write("printf(" + withNewline + ");\n");
+                } else if (arg.matches("-?[0-9]+\\.[0-9]+")) {
+                    // Float literal
+                    write("printf(\"%f\\n\", " + arg + ");\n");
                 } else {
-                    write("printf(\"%d\", " + arg + ");\n");
+                    // Variável ou int literal: usa %d por padrão
+                    write("printf(\"%d\\n\", " + arg + ");\n");
                 }
                 ast.endRuleNode();
                 return true;
@@ -836,7 +855,7 @@ public class Parser {
                     if (printfArgBuffer.length() > 0) {
                         char last = printfArgBuffer.charAt(printfArgBuffer.length() - 1);
                         if (last != ' ' && last != '(' && !newcode.equals(")")
-                                && !newcode.equals(","))
+                                && !newcode.equals(",") && !newcode.equals("("))
                             printfArgBuffer.append(" ");
                     }
                     printfArgBuffer.append(newcode);

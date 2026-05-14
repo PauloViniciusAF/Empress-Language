@@ -1,7 +1,11 @@
 
-функция funcao( интеграл numero, интеграл numerob){
+функция интеграл funcao( интеграл numero, интеграл numerob){
     интеграл soma := numero + numerob;
-    печать(soma);
+    вернуть soma
+    
 }
 
-funcao(1, 2);
+печать(funcao(1, 2));
+интеграл numerob := 25;
+печать(numerob);
+печать("hello, world");

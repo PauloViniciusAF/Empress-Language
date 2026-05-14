@@ -13,10 +13,10 @@ public class specialCharacters extends AFD {
             // Parenthesis, Braces and Brackets
             case '[':
                 code.next();
-                return new Token("OPEN_BRACKET", "[");
+                return new Token("OPEN_BRACKETS", "[");
             case ']':
                 code.next();
-                return new Token("CLOSE_BRACKET", "]");
+                return new Token("CLOSE_BRACKETS", "]");
             case '{':
                 code.next();
                 return new Token("OPEN_BRACES", "{");

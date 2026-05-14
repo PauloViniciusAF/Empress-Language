@@ -2,12 +2,15 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-void funcao(int numero, int numerob) {
+int funcao(int numero, int numerob) {
 int soma = numero + numerob;
-printf("%d", soma);
+return  soma;
 }
 
 int main() {
-funcao(1,2);
+printf("%d\n", funcao(1, 2));
+int numerob = 25;
+printf("%d\n", numerob);
+printf("hello, world\n");
     return 0;
 }

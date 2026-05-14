@@ -187,36 +187,23 @@ public class SemanticAnalyzer {
         Symbol sym = lookup(name, ch.get(0).getLine());
         if (sym == null)
             return;
-        boolean isCall = ch.size() > 1 && "(".equals(ch.get(1).getValue());
+        boolean isCall = ch.size() > 1 && "args".equals(ch.get(1).getValue());
 
         if (isCall) {
-
             if (sym.kind != Symbol.Kind.FUNCTION) {
                 reportError(String.format(
                         "Erro semântico: '%s' é uma variável e não pode ser chamada como função.",
                         name), ch.get(0).getLine());
                 return;
             }
-            int provided = 0;
-            boolean inArgs = false;
-            for (int i = 1; i < ch.size(); i++) {
-                String cv = ch.get(i).getValue();
-                if ("(".equals(cv)) {
-                    inArgs = true;
-                    continue;
-                }
-                if (")".equals(cv)) {
-                    inArgs = false;
-                    continue;
-                }
-                if (inArgs && !",".equals(cv) && !";".equals(cv))
-                    provided++;
-            }
-            if (provided != sym.arity)
+            TreeNode argsNode = ch.get(1);
+            int provided = argsNode.getChildren().size();
+            if (provided != sym.arity) {
                 reportError(String.format(
                         "Erro semântico: função '%s' espera %d argumento(s), mas recebeu %d.", name,
-                        sym.arity, provided), ch.get(1).getLine());
-            checkIdsInRange(ch, 2, ch.size() - 1);
+                        sym.arity, provided), ch.get(0).getLine());
+            }
+            checkIdsInRange(argsNode.getChildren(), 0, argsNode.getChildren().size());
             return;
         }
 
@@ -242,6 +229,10 @@ public class SemanticAnalyzer {
         if (ch.size() < 2)
             return;
 
+        // ch.get(0) = tipo de retorno ("int", "float", "bool", "char*", "void")
+        // ch.get(1) = nome da função
+        String returnTypeRaw = ch.get(0).getValue();
+        String returnType = normalizeReturnType(returnTypeRaw);
         String funcName = ch.get(1).getValue();
 
         // Acha onde começa o bloco
@@ -261,7 +252,7 @@ public class SemanticAnalyzer {
                 arity++;
         }
 
-        declare(new Symbol(funcName, "void", Symbol.Kind.FUNCTION, arity), ch.get(1).getLine());
+        declare(new Symbol(funcName, returnType, Symbol.Kind.FUNCTION, arity), ch.get(1).getLine());
         enterScope();
 
         // Declara os parâmetros no escopo da função
@@ -310,6 +301,18 @@ public class SemanticAnalyzer {
 
     private boolean isTypeLiteral(String v) {
         return "int".equals(v) || "float".equals(v) || "bool".equals(v) || "char*".equals(v);
+    }
+
+    private String normalizeReturnType(String v) {
+        if (v == null) return "void";
+        return switch (v) {
+            case "int"   -> "int";
+            case "float" -> "float";
+            case "bool"  -> "bool";
+            case "char*" -> "string";
+            case "void"  -> "void";
+            default      -> "void";
+        };
     }
 
     private String normalizeType(String v) {
