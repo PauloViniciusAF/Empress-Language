@@ -19,7 +19,9 @@ git clone https://github.com/PauloViniciusAF/Empress-Language.git
 ```bash 
 --tree      //Retorna a AST no terminal
 ```
-
+```bash 
+--token      //Retorna os tokens no terminal
+```
 
 ## Glossário
 
